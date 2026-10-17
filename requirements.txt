@@ -1,10 +1,34 @@
-loguru
-mkdocs
-pip
-python-dotenv
-ruff
-tqdm
-typer
+# Versiones fijadas para reproducir el entorno (Python 3.14).
+# Instalar con: python -m pip install -r requirements.txt
+
+# Datos
+numpy==2.5.4
+pandas==3.0.6
+pyarrow==25.0.1
+requests==2.34.2
+
+# Modelado y experimentos
+scikit-learn==1.9.1
+scipy==1.18.1
+mlflow==3.17.1
+
+# Visualización
+matplotlib==3.11.2
+seaborn==0.13.2
+
+# Notebooks
+jupyterlab==4.6.4
+ipykernel==7.4.0
+
+# Utilidades de la plantilla
+loguru==0.7.3
+python-dotenv==1.2.4
+tqdm==4.70.1
+typer==0.27.3
+
+# Desarrollo y documentación
+mkdocs==1.6.1
+ruff==0.17.1
+
+# Paquete del proyecto en modo editable
 -e .
-pandas>=2.0
-pyarrow>=12.0

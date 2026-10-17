@@ -42,6 +42,8 @@ Los viajes se almacenan en archivos Parquet separados por mes. El catálogo de e
 
 El manifiesto registra los hashes SHA-256, el número de registros, el rango temporal disponible y la versión del esquema. Los datos originales y procesados no se almacenan en Git.
 
+El campo `data_version` del manifiesto es un hash corto (12 caracteres) de la versión del esquema y de los hashes de todos los Parquet. Cada run de MLflow lo registra como parámetro y etiqueta, de modo que un resultado siempre se puede ligar a los datos exactos que lo produjeron.
+
 ## 6. Limitaciones
 
 El catálogo actual de estaciones puede no representar todas las estaciones que existieron en el histórico. La capacidad de una estación no representa el inventario real de bicicletas disponibles en un momento determinado.

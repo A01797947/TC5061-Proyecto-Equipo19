@@ -17,9 +17,18 @@ classifiers = [
 ]
 requires-python = "~=3.14.0"
 
+# Las versiones exactas están fijadas en requirements.txt.
 dependencies = [
-    "pandas>=2.0",
-    "pyarrow>=12.0",
+    "loguru",
+    "matplotlib",
+    "mlflow",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "python-dotenv",
+    "requests",
+    "scikit-learn",
+    "typer",
 ]
 
 [tool.ruff]

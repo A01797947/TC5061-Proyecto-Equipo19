@@ -1,10 +1,159 @@
-# TC5061 Proyecto Equipo 19
+# TC5061 Proyecto Equipo 19: MiBici
 
 <a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-Proyecto MiBici: propuesta y base reproducible
+## Propósito
+
+Propuesta y base reproducible de Machine Learning para el sistema de bicicleta pública
+[MiBici](https://www.mibici.net/) de Guadalajara. El repositorio contiene la ingesta
+versionada de millones de viajes, el módulo de feature engineering y un experimento base
+registrado en MLflow Tracking que valida la viabilidad técnica de la propuesta.
+
+## Preguntas
+
+| | Pregunta | Tarea |
+|---|---|---|
+| **P1** | ¿Cuántos viajes se iniciarán en una estación o zona en un periodo futuro? | Regresión |
+| **P2** | ¿Una estación estará en riesgo de quedarse sin bicicletas o sin anclajes disponibles en un periodo futuro? | Clasificación |
+| **P3** | ¿Qué grupos de estaciones comparten patrones de uso y dónde se ubican en la ciudad? | Clustering |
+
+El ML Canvas y el diagrama de arquitectura están en [`references/`](references/).
+
+## Datos
+
+- **Fuente:** [Datos abiertos de MiBici](https://www.mibici.net/es/datos-abiertos/). Los enlaces
+  exactos de cada archivo están en `tc5061_proyecto_equipo19/config.py` (`URLS_VIAJES`,
+  `URL_ESTACIONES`).
+- **Rango:** enero 2024 a diciembre 2025 (24 meses completos, dos ciclos anuales para
+  capturar la estacionalidad).
+- **Tamaño obtenido:** 9,177,953 viajes y 484 estaciones en la nomenclatura `nomenclatura_2026_09.csv`.
+- **Variables usadas:** `trip_id`, `start_time`, `end_time`, `origin_station_id`,
+  `destination_station_id` y, del catálogo, `station_id`, `station_name`, `latitude`,
+  `longitude`, `capacity`. Detalle en [`references/data_dictionary.md`](references/data_dictionary.md).
+- **Datos personales:** `Usuario_Id`, `Genero` y `Año_de_nacimiento` se descartan en la ingesta y
+  nunca llegan a los Parquet. Los datos crudos y procesados no se suben a Git.
+- **Partición temporal** (definida en `config.py`): entrenamiento 2024-01 a 2025-06, validación
+  2025-07 a 2025-09 y prueba 2025-10 a 2025-12. Las variables solo usan información anterior al
+  momento de la predicción y las estadísticas se calculan solo con el periodo de entrenamiento.
+- **Versionado:** `references/data_manifest.json` guarda, por archivo, el número de registros y el
+  hash SHA-256 del CSV original y del Parquet. Su campo `data_version` es un hash corto de todos
+  los Parquet; cada run de MLflow lo registra como parámetro y etiqueta, y adjunta el manifiesto
+  como artefacto. Si cambian los datos, cambia `data_version` y el cambio queda en el historial de Git.
+
+## Estructura de carpetas
+
+```
+├── Makefile           <- Comandos: make data, make features, make features_p2, make train_p2, make mlflow-ui
+├── README.md
+├── data               <- No se versiona en Git
+│   ├── raw            <- CSV originales descargados de MiBici
+│   ├── interim        <- Viajes limpios y enriquecidos
+│   └── processed      <- Parquet normalizados (trips_AAAA_MM.parquet, stations.parquet)
+├── docs               <- Proyecto de mkdocs
+├── models             <- Modelos serializados (no se versionan)
+├── notebooks          <- Notebooks de exploración (número-iniciales-descripción)
+├── pyproject.toml     <- Metadatos del paquete y configuración de ruff
+├── references         <- ML Canvas, diagrama de arquitectura, diccionario y manifiesto de datos
+├── reports
+│   └── figures        <- Figuras generadas por el experimento
+├── requirements.txt   <- Dependencias con versiones fijadas
+└── tc5061_proyecto_equipo19
+    ├── config.py      <- Rutas, fechas, particiones, semillas, URLs y configuración de MLflow
+    ├── config_p2.py   <- Parámetros de la etiqueta y los modelos de P2
+    ├── dataset.py     <- Ingesta: descarga, normalización, Parquet y manifiesto
+    ├── features.py    <- Carga, limpieza, variables temporales y partición temporal
+    ├── features_p2.py <- Variables y etiqueta de riesgo de P2
+    ├── plots.py
+    └── modeling
+        ├── mlflow_utils.py <- Parámetros, etiquetas y artefactos comunes de cada run
+        ├── train_p2.py     <- Baselines y candidatos de P2 registrados en MLflow
+        ├── train.py
+        └── predict.py
+```
+
+## Instalación
+
+Requiere Python 3.14.
+
+```bash
+git clone https://github.com/A01797947/TC5061-Proyecto-Equipo19.git
+cd TC5061-Proyecto-Equipo19
+python3.14 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m pip install -r requirements.txt
+```
+
+## Ingesta de datos
+
+Descarga los 24 meses y la nomenclatura, normaliza columnas, codificación y fechas, guarda Parquet
+y regenera el manifiesto. Los archivos ya descargados no se vuelven a bajar.
+
+```bash
+make data
+# equivalente a:
+python -m tc5061_proyecto_equipo19.dataset
+# por etapas:
+python -m tc5061_proyecto_equipo19.dataset descargar
+python -m tc5061_proyecto_equipo19.dataset procesar
+```
+
+Al terminar, compara `references/data_manifest.json` con el de `main`: si `data_version` coincide,
+tienes exactamente los mismos datos que el resto del equipo.
+
+## Experimento en MLflow
+
+Todos los runs van al experimento `mibici-equipo19`, guardado en `mlflow.db` (SQLite) con
+artefactos en `mlartifacts/`. Para usar un servidor de MLflow compartido, define
+`MLFLOW_TRACKING_URI` en un archivo `.env`.
+
+`tc5061_proyecto_equipo19/modeling/mlflow_utils.py` da a cada run lo que necesita para ser
+reproducible:
+
+- **Parámetros:** rango de fechas, cortes de entrenamiento, validación y prueba, `data_version`,
+  versión del esquema, número de meses y viajes y semilla, más los del modelo.
+- **Etiquetas:** `equipo`, `pregunta`, `tipo_modelo` (baseline o candidato), `git_commit`,
+  `git_branch`, `git_dirty` y `data_version`.
+- **Artefactos:** el manifiesto de datos, al que cada run agrega sus figuras.
+
+Ejecuta los runs con el árbol de trabajo limpio (sin cambios sin commit) para que `git_commit`
+identifique exactamente el código usado; `git_dirty=True` indica lo contrario.
+
+### Capturas de evidencia
+
+```bash
+make mlflow-ui
+# equivalente a:
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+
+Abre http://127.0.0.1:5000 y toma estas capturas:
+
+1. **Lista de runs:** experimento `mibici-equipo19` en la pestaña *Runs*, con las columnas de
+   métricas y la etiqueta `pregunta` visibles.
+2. **Detalle de un run:** las secciones *Parameters*, *Metrics* y *Tags* de un run.
+3. **Artefacto:** la pestaña *Artifacts* de un run con una figura abierta.
+4. **Comparación:** selecciona dos o más runs y pulsa *Compare*; captura la tabla de parámetros y
+   métricas.
+
+## P2. Riesgo de estación sin bicicletas o sin anclajes
+
+Clasificación por estación y hora: ¿la estación quedará vacía o llena en las próximas tres horas? La aproximación del riesgo, el pipeline, los modelos, las métricas y lo que se registra en MLflow están en [`references/p2_riesgo_estaciones.md`](references/p2_riesgo_estaciones.md).
+
+```bash
+make features_p2   # python -m tc5061_proyecto_equipo19.features_p2: tabla de variables y etiqueta
+make train_p2      # python -m tc5061_proyecto_equipo19.modeling.train_p2: baselines y candidatos en MLflow
+```
+
+## Equipo
+
+| Integrante | Rol |
+|---|---|
+| José Llashag Huaman | Por definir |
+| Ismael Ortiz Díaz | Por definir |
+| José Martín Ramos Requena | Por definir |
+| Denisse Martínez Ruíz | Por definir |
 
 ## Flujo de trabajo con Git y GitHub
 
@@ -191,58 +340,3 @@ VS Code (con la extensión GitLens) muestra los conflictos y permite elegir entr
 - No reescribas el historial de una rama que ya se compartió.
 - Si algo salió mal en `main`, se corrige con un nuevo PR (por ejemplo `fix/...` o `git revert`), nunca con force push.
 - Los modelos y las figuras generadas se suben solo cuando el equipo lo decide, y nunca los datos crudos.
-
-
-## Project Organization
-
-```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         tc5061_proyecto_equipo19 and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── tc5061_proyecto_equipo19   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes tc5061_proyecto_equipo19 a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
-```
-
---------
-
