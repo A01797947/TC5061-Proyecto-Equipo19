@@ -21,6 +21,13 @@ MODELS_DIR = PROJ_ROOT / "models"
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
 
+REFERENCES_DIR = PROJ_ROOT / "references"
+MANIFEST_PATH = REFERENCES_DIR / "data_manifest.json"
+
+DATA_SCHEMA_VERSION = "1.0.0"
+CSV_ENCODING = "utf-8-sig"
+PARQUET_COMPRESSION = "snappy"
+
 # If tqdm is installed, configure loguru with tqdm.write
 # https://github.com/Delgan/loguru/issues/135
 try:
