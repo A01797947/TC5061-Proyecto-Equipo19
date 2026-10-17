@@ -1,0 +1,4 @@
+cluster,numero_estaciones,promedio_salidas,promedio_llegadas,promedio_total_viajes,capacidad_promedio,latitud_media,longitud_media
+0,124,42760.66,42151.1,84911.76,17.38,20.68,-103.36
+1,339,9317.5,9379.17,18696.67,16.78,20.68,-103.36
+2,7,138601.43,146389.43,284990.86,25.29,20.68,-103.35

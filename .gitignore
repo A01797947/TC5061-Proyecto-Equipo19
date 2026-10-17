@@ -1,8 +1,9 @@
-# Data
+# Datos de MiBici (crudos, intermedios y procesados): nunca se suben a Git.
+# Su versión queda en references/data_manifest.json.
 /data/
-data/raw/
-data/interim/
-data/processed/
+*.csv
+*.parquet
+*.csv.part
 
 # MLflow
 mlruns/
@@ -164,6 +165,9 @@ venv.bak/
 # Modelos serializados
 models/*
 !models/.gitkeep
+*.pkl
+*.joblib
+*.onnx
 
 # Spyder project settings
 .spyderproject

@@ -1,139 +1,158 @@
-"""
-Módulo de Ingeniería de Características (features.py)
-------------------------------------------------------
-Este módulo contiene las funciones de transformación para construir el dataset común sobre el 
-que se trabajarán los modelos de Machine Learning. Incluye funciones para cargar, limpiar, enriquecer y transformar los datos de viajes y estaciones.
-"""
-import pandas as pd
-from pathlib import Path
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+"""Ingeniería de características de MiBici.
 
-def cargar_datos_viajes_y_estaciones(processed_dir_path: str):
+Las funciones vienen del notebook ``1.0-JMRR-EDA``: carga, limpieza, variables
+temporales, unión con estaciones y partición temporal. Las variables de cada
+pregunta se agregan sobre esta base.
+
+Regla contra fuga de información: ninguna variable de una fila con hora ``t``
+puede usar viajes posteriores a ``t``; las estadísticas se calculan solo con el
+periodo de entrenamiento.
+
+Uso desde la terminal:
+
+    python -m tc5061_proyecto_equipo19.features
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from loguru import logger
+import numpy as np
+import pandas as pd
+import typer
+
+from tc5061_proyecto_equipo19.config import (
+    FECHA_FIN,
+    FECHA_INICIO,
+    FIN_ENTRENAMIENTO,
+    FIN_VALIDACION,
+    INICIO_PRUEBA,
+    INICIO_VALIDACION,
+    INTERIM_DATA_DIR,
+    PROCESSED_DATA_DIR,
+)
+
+app = typer.Typer()
+
+
+# ---------------------------------------------------------------------------
+# Comunes
+# ---------------------------------------------------------------------------
+def cargar_datos_viajes_y_estaciones(
+    processed_dir: Path = PROCESSED_DATA_DIR,
+    fecha_inicio: str = FECHA_INICIO,
+    fecha_fin: str = FECHA_FIN,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Carga los Parquet mensuales de viajes dentro del rango de fechas y el catálogo.
+
+    Usar el rango de ``config`` garantiza que todos los runs trabajen sobre el
+    mismo periodo que se registra en MLflow.
     """
-    Carga todos los archivos Parquet de viajes mensuales y el catálogo de estaciones,
-    uniéndolos en un solo DataFrame para los viajes.
-    """
-    processed_dir = Path(processed_dir_path)
+    processed_dir = Path(processed_dir)
     parquet_files = sorted(processed_dir.glob("trips_*.parquet"))
-    
-    df_list = []
-    for file_path in parquet_files:
-        print(f"Cargando: {file_path.name}")
-        temp_df = pd.read_parquet(file_path)
-        df_list.append(temp_df)
-    
-    df_trips_all = pd.concat(df_list, ignore_index=True)
+    if not parquet_files:
+        raise FileNotFoundError(f"No hay trips_*.parquet en {processed_dir}. Corre la ingesta.")
+
+    df_trips = pd.concat((pd.read_parquet(p) for p in parquet_files), ignore_index=True)
+    inicio = pd.Timestamp(fecha_inicio)
+    fin = pd.Timestamp(fecha_fin) + pd.Timedelta(days=1)
+    df_trips = df_trips[(df_trips["start_time"] >= inicio) & (df_trips["start_time"] < fin)]
     df_stations = pd.read_parquet(processed_dir / "stations.parquet")
-    
-    print(f"Total de registros combinados: {df_trips_all.shape}")
-    print(f"Total de estaciones: {df_stations.shape}")
-    
-    return df_trips_all, df_stations
+
+    logger.info(f"Viajes cargados: {len(df_trips):,} | Estaciones: {len(df_stations)}")
+    return df_trips.reset_index(drop=True), df_stations
+
 
 def agregar_variables_temporales(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Agrega columnas derivadas del tiempo (Año, Mes, Día, Día de la semana) 
-    y calcula la duración del viaje en minutos.
+    """Agrega año, mes, día, día de la semana, hora y duración del viaje en minutos.
+
+    El EDA mostró estacionalidad semanal (martes a jueves con más uso, caída en
+    fin de semana) y anual (baja desde agosto). Estas columnas permiten medir esos
+    patrones; la duración solo se usa para limpieza, no como predictor, porque se
+    conoce hasta que el viaje termina.
     """
     df = df.copy()
     df["Año"] = df["start_time"].dt.year
     df["Mes"] = df["start_time"].dt.month
     df["Dia"] = df["start_time"].dt.day
     df["Dia_semana"] = df["start_time"].dt.weekday
-    
-    df["duracion_viaje"] = (
-        df["end_time"] - df["start_time"]
-    ).dt.total_seconds() / 60.0
-    
+    df["Hora"] = df["start_time"].dt.hour
+    df["duracion_viaje"] = (df["end_time"] - df["start_time"]).dt.total_seconds() / 60.0
     return df
 
+
 def limpiar_datos_viajes(df: pd.DataFrame) -> pd.DataFrame:
+    """Elimina viajes con fechas inválidas, con fin anterior al inicio y duplicados.
+
+    El EDA encontró 115 viajes (0.0012 %) con duración negativa; se descartan por
+    ser errores de registro. Los duplicados se quitan por ``trip_id`` para no
+    contar dos veces la demanda de una estación.
     """
-    Filtra y elimina registros con anomalías temporales (duración negativa o start_time > end_time)
-    y elimina filas duplicadas.
-    """
-    # Filtrar duraciones negativas (tiempos inconsistentes)
-    df_limpio = df[df['start_time'] <= df['end_time']].copy()
-    
-    # Eliminar duplicados si los hay
-    longitud_antes = len(df_limpio)
-    df_limpio = df_limpio.drop_duplicates().reset_index(drop=True)
-    duplicados_eliminados = longitud_antes - len(df_limpio)
-    
-    print(f"Registros antes de limpieza: {len(df):,}")
-    print(f"Duplicados eliminados: {duplicados_eliminados:,}")
-    print(f"Registros después de limpieza: {len(df_limpio):,}")
-    
+    antes = len(df)
+    df_limpio = df.dropna(subset=["start_time", "end_time", "origin_station_id"])
+    df_limpio = df_limpio[df_limpio["start_time"] <= df_limpio["end_time"]]
+    df_limpio = df_limpio.drop_duplicates(subset="trip_id").reset_index(drop=True)
+    logger.info(
+        f"Limpieza: {antes:,} -> {len(df_limpio):,} viajes ({antes - len(df_limpio):,} fuera)"
+    )
     return df_limpio
 
+
 def merge_viajes_con_estaciones(df_trips: pd.DataFrame, df_stations: pd.DataFrame) -> pd.DataFrame:
-    """
-    Realiza un merge para enriquecer el DataFrame de viajes con las coordenadas 
-    y capacidades tanto de la estación de origen como de la de destino.
-    """
-    # Merge para estación de origen
-    df_enriquecido = df_trips.merge(
-        df_stations[['station_id', 'latitude', 'longitude', 'capacity']],
-        left_on='origin_station_id',
-        right_on='station_id',
-        how='left'
-    ).rename(columns={
-        'latitude': 'origin_latitude',
-        'longitude': 'origin_longitude',
-        'capacity': 'origin_capacity'
-    }).drop(columns=['station_id'])
+    """Agrega coordenadas y capacidad de las estaciones de origen y destino.
 
-    # Merge para estación de destino
-    df_enriquecido = df_enriquecido.merge(
-        df_stations[['station_id', 'latitude', 'longitude', 'capacity']],
-        left_on='destination_station_id',
-        right_on='station_id',
-        how='left'
-    ).rename(columns={
-        'latitude': 'destination_latitude',
-        'longitude': 'destination_longitude',
-        'capacity': 'destination_capacity'
-    }).drop(columns=['station_id'])
-
-    return df_enriquecido
+    La ubicación y la capacidad explican diferencias de uso entre estaciones; la
+    capacidad además define cuándo una estación se queda sin bicis o sin anclajes.
+    """
+    cols = ["station_id", "latitude", "longitude", "capacity"]
+    resultado = df_trips
+    for lado in ("origin", "destination"):
+        renombre = {c: f"{lado}_{c}" for c in cols[1:]}
+        resultado = resultado.merge(
+            df_stations[cols].rename(columns=renombre),
+            left_on=f"{lado}_station_id",
+            right_on="station_id",
+            how="left",
+        ).drop(columns="station_id")
+    return resultado
 
 
-def run(processed_dir_path: str = "../data/processed", output_file_path: str = "../data/processed/viajes_limpios_enriquecidos.parquet") -> pd.DataFrame:
+def particion_temporal(df: pd.DataFrame, columna_tiempo: str) -> pd.Series:
+    """Etiqueta cada fila como ``train``, ``val`` o ``test`` según su fecha.
+
+    La partición es cronológica (fechas en ``config``): el modelo nunca ve meses
+    posteriores a los que se evalúan, igual que en la operación real.
     """
-    Función principal que ejecuta todo el pipeline de datos:
-    1. Carga
-    2. Adición de variables temporales
-    3. Limpieza
-    4. Enriquecimiento (Merge con estaciones)
-    5. Guardado automático en Parquet
-    """
-    
-    # Cargar datos
-    df_trips_all, df_stations = cargar_datos_viajes_y_estaciones(processed_dir_path)
-    
-    # Agregar variables temporales
-    df_trips_temp = agregar_variables_temporales(df_trips_all)
-    
-    # Limpiar datos
-    df_trips_limpio = limpiar_datos_viajes(df_trips_temp)
-    
-    # Enriquecer con estaciones
-    df_final = merge_viajes_con_estaciones(df_trips_limpio, df_stations)
-    
-    # Guardar automáticamente el archivo Parquet
-    if output_file_path:
-        output_path = Path(output_file_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        df_final.to_parquet(output_path, index=False)
-        print(f"\n¡Archivo procesado guardado exitosamente en: {output_path}")
-    
-    return df_final
+    t = df[columna_tiempo]
+    return pd.Series(
+        np.select(
+            [
+                t <= pd.Timestamp(FIN_ENTRENAMIENTO),
+                (t >= pd.Timestamp(INICIO_VALIDACION)) & (t <= pd.Timestamp(FIN_VALIDACION)),
+                t >= pd.Timestamp(INICIO_PRUEBA),
+            ],
+            ["train", "val", "test"],
+            default="fuera",
+        ),
+        index=df.index,
+        name="particion",
+    )
+
+
+@app.command()
+def main(
+    processed_dir: Path = PROCESSED_DATA_DIR,
+    output_path: Path = INTERIM_DATA_DIR / "viajes_limpios_enriquecidos.parquet",
+) -> None:
+    """Genera el dataset común de viajes limpios y enriquecidos en data/interim."""
+    df_trips, df_stations = cargar_datos_viajes_y_estaciones(processed_dir)
+    df = limpiar_datos_viajes(agregar_variables_temporales(df_trips))
+    df = merge_viajes_con_estaciones(df, df_stations)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(output_path, index=False)
+    logger.success(f"Guardado {output_path}")
 
 
 if __name__ == "__main__":
-    df_viajes_procesados = run(
-        processed_dir_path="../data/processed", 
-        output_file_path="../data/processed/viajes_limpios_enriquecidos.parquet"
-    )
+    app()
