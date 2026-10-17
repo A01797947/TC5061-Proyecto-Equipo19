@@ -57,10 +57,31 @@ create_environment:
 #################################################################################
 
 
-## Make dataset
+## Descargar meses y estaciones, convertir a Parquet y generar el manifiesto
 .PHONY: data
-data: requirements
-	$(PYTHON_INTERPRETER) tc5061_proyecto_equipo19/dataset.py
+data:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.dataset
+
+## Generar el dataset de viajes limpios y enriquecidos en data/interim
+.PHONY: features
+features:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.features
+
+## Abrir la interfaz de MLflow en http://127.0.0.1:5000
+.PHONY: mlflow-ui
+mlflow-ui:
+	mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+
+
+## P2: tabla de variables y etiqueta de riesgo
+.PHONY: features_p2
+features_p2:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.features_p2
+
+## P2: baselines y candidatos registrados en MLflow
+.PHONY: train_p2
+train_p2:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.modeling.train_p2
 
 
 #################################################################################
