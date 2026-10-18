@@ -138,7 +138,7 @@ def merge_viajes_con_estaciones(df_trips: pd.DataFrame, df_stations: pd.DataFram
 
 
 def particion_temporal(df: pd.DataFrame, columna_tiempo: str) -> pd.Series:
-    """Etiqueta cada fila como ``train``, ``val`` o ``test`` según su fecha.
+    """Etiqueta cada fila como ``train``, ``valid`` o ``test`` según su fecha.
 
     La partición es cronológica (fechas en ``config``): el modelo nunca ve meses
     posteriores a los que se evalúan, igual que en la operación real.
@@ -151,12 +151,24 @@ def particion_temporal(df: pd.DataFrame, columna_tiempo: str) -> pd.Series:
                 (t >= pd.Timestamp(INICIO_VALIDACION)) & (t <= pd.Timestamp(FIN_VALIDACION)),
                 t >= pd.Timestamp(INICIO_PRUEBA),
             ],
-            ["train", "val", "test"],
+            ["train", "valid", "test"],
             default="fuera",
         ),
         index=df.index,
         name="particion",
     )
+
+def dividir_particiones(df: pd.DataFrame, columna_timepo: str = "timestamp") -> dict[str, pd.DataFrame]:
+    """Divide ``df`` en ``train``, ``valid`` y ``test`` con las fechas de ``config.py``.
+
+    Las filas que no caen en ninguna partición (etiqueta ``fuera``) se descartan.
+    """
+
+    etiquetas = particion_temporal(df, columna_timepo)
+    return {
+        nombre : df[etiquetas == nombre].reset_index(drop = True)
+        for nombre in ("train", "valid", "test")
+    }
 
 
 @app.command()
