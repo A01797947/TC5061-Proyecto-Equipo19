@@ -28,7 +28,7 @@ from tc5061_proyecto_equipo19.features.base import agregar_calendario, mascara_v
 #     riesgo_vacia = min ocupacion_est ≤ 0.10   (sin bicicletas)
 #     riesgo_llena = max ocupacion_est ≥ 0.90   (sin anclajes)
 #     y = riesgo_vacia o riesgo_llena
-# Los parámetros viven en config_p2.py.
+# Los parámetros viven en config.py.
 
 P2_FEATURE_COLUMNS = [
     "hora",
@@ -358,7 +358,7 @@ def build_p2_features(
 if __name__ == "__main__":
     import json
 
-    from tc5061_proyecto_equipo19 import config_p2 as cfg
+    from tc5061_proyecto_equipo19 import config as cfg
     from tc5061_proyecto_equipo19.config import FECHA_FIN, FECHA_INICIO, PROCESSED_DATA_DIR
 
     _, resumen = build_p2_features(
