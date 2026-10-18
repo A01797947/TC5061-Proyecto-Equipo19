@@ -10,6 +10,7 @@ from tc5061_proyecto_equipo19.features.base import (
     cargar_datos_viajes_y_estaciones,
     dividir_particiones,
     limpiar_datos_viajes,
+    mascara_viajes_consistentes,
     merge_viajes_con_estaciones,
     particion_temporal,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "cargar_datos_viajes_y_estaciones",
     "dividir_particiones",
     "limpiar_datos_viajes",
+    "mascara_viajes_consistentes",
     "merge_viajes_con_estaciones",
     "particion_temporal",
 ]

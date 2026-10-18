@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from tc5061_proyecto_equipo19.features.base import agregar_calendario
+from tc5061_proyecto_equipo19.features.base import agregar_calendario, mascara_viajes_consistentes
 
 # =============================================================================
 # P2. Riesgo de que una estación se quede sin bicicletas o sin anclajes
@@ -56,11 +56,12 @@ P2_FEATURE_COLUMNS = [
     "actividad_sistema_vs_semana_pasada",
 ]
 
+
 def cargar_viajes_p2(processed_dir: Path) -> tuple[pd.DataFrame, dict]:
     """
     Carga los Parquet mensuales con solo las columnas que usa P2 y limpia las fechas.
 
-    Lee archivo por archivo para conocer el mes al que pertenece cada viaje 
+    Lee archivo por archivo para conocer el mes al que pertenece cada viaje
     y descarta viajes que siguen siendo inconsistentes: inicio fuera
     del mes de su archivo, duración negativa o mayor a 24 horas. Un viaje se asigna al
     periodo de su ``start_time`` para que no se filtre a otro conjunto de la partición.
@@ -76,13 +77,7 @@ def cargar_viajes_p2(processed_dir: Path) -> tuple[pd.DataFrame, dict]:
         df = pd.read_parquet(path, columns=columns)
         stats["viajes_leidos"] += len(df)
 
-        duration = df["end_time"] - df["start_time"]
-        valid = (
-            (df["start_time"].dt.year == year)
-            & (df["start_time"].dt.month == month)
-            & (duration >= pd.Timedelta(0))
-            & (duration <= pd.Timedelta(days=1))
-        )
+        valid = mascara_viajes_consistentes(df, year, month)
         stats["viajes_descartados"] += int((~valid).sum())
         frames.append(df[valid])
 
@@ -301,6 +296,7 @@ def construir_dataset_p2(
     float_cols = df.select_dtypes("float64").columns.difference(["latitud", "longitud"])
     df[float_cols] = df[float_cols].astype("float32")
     return df
+
 
 def tasa_historica_riesgo(train: pd.DataFrame, target: str = "y_riesgo") -> pd.DataFrame:
     """
