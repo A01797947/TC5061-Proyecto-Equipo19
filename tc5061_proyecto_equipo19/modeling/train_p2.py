@@ -48,7 +48,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 import typer
 
-from tc5061_proyecto_equipo19 import config_p2 as cfg
+from tc5061_proyecto_equipo19 import config as cfg
 from tc5061_proyecto_equipo19.config import (
     FECHA_FIN,
     FECHA_INICIO,
@@ -259,7 +259,7 @@ def plot_importance(names: list[str], values: np.ndarray, xlabel: str, path: Pat
 # Modelos
 # -----------------------------------------------------------------------------
 def build_estimator(name: str):
-    """Estimadores candidatos con hiperparámetros fijos y semilla de config_p2."""
+    """Estimadores candidatos con hiperparámetros fijos y semilla de config."""
     if name == "logreg":
         return make_pipeline(
             SimpleImputer(strategy="median"),

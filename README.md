@@ -42,6 +42,12 @@ El ML Canvas y el diagrama de arquitectura están en [`references/`](references/
   los Parquet; cada run de MLflow lo registra como parámetro y etiqueta, y adjunta el manifiesto
   como artefacto. Si cambian los datos, cambia `data_version` y el cambio queda en el historial de Git.
 
+## Arquitectura
+
+![Arquitectura MLOps de MiBici](docs/arquitectura/arquitectura_mibici.png)
+
+El diagrama editable está en `docs/arquitectura/arquitectura_mibici.drawio` (se abre en app.diagrams.net).
+
 ## Estructura de carpetas
 
 ```
@@ -61,7 +67,6 @@ El ML Canvas y el diagrama de arquitectura están en [`references/`](references/
 ├── requirements.txt   <- Dependencias con versiones fijadas
 └── tc5061_proyecto_equipo19
     ├── config.py      <- Rutas, fechas, particiones, semillas, URLs y configuración de MLflow
-    ├── config_p2.py   <- Parámetros de la etiqueta y los modelos de P2
     ├── dataset.py     <- Ingesta: descarga, normalización, Parquet y manifiesto
     ├── features/      <- Paquete de feature engineering reutilizable
         ├── base.py    <- Carga, limpieza, calendario y partición temporal (compartido)
