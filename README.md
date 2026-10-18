@@ -42,6 +42,12 @@ El ML Canvas y el diagrama de arquitectura están en [`references/`](references/
   los Parquet; cada run de MLflow lo registra como parámetro y etiqueta, y adjunta el manifiesto
   como artefacto. Si cambian los datos, cambia `data_version` y el cambio queda en el historial de Git.
 
+## Arquitectura
+
+![Arquitectura MLOps de MiBici](docs/arquitectura/arquitectura_mibici.png)
+
+El diagrama editable está en `docs/arquitectura/arquitectura_mibici.drawio` (se abre en app.diagrams.net).
+
 ## Estructura de carpetas
 
 ```
