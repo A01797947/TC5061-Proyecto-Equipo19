@@ -11,6 +11,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from tc5061_proyecto_equipo19.features.base import agregar_calendario
+
 # =============================================================================
 # P2. Riesgo de que una estación se quede sin bicicletas o sin anclajes
 # =============================================================================
@@ -53,26 +55,6 @@ P2_FEATURE_COLUMNS = [
     "salidas_sistema_h",
     "actividad_sistema_vs_semana_pasada",
 ]
-
-# Días feriados oficiales (Ley Federal del Trabajo, art. 74) en el periodo de estudio.
-P2_HOLIDAYS = [
-    "2024-01-01",
-    "2024-02-05",
-    "2024-03-18",
-    "2024-05-01",
-    "2024-09-16",
-    "2024-10-01",
-    "2024-11-18",
-    "2024-12-25",
-    "2025-01-01",
-    "2025-02-03",
-    "2025-03-17",
-    "2025-05-01",
-    "2025-09-16",
-    "2025-11-17",
-    "2025-12-25",
-]
-
 
 def cargar_viajes_p2(processed_dir: Path) -> tuple[pd.DataFrame, dict]:
     """
@@ -300,7 +282,7 @@ def construir_dataset_p2(
     df["latitud"] = catalog["latitude"].to_numpy()[station_idx]
     df["longitud"] = catalog["longitude"].to_numpy()[station_idx]
 
-    df = agregar_calendario_p2(df)
+    df = agregar_calendario(df)
 
     # Periodo de vida de cada estación según sus viajes observados.
     total = flujos["salidas"] + flujos["llegadas"]
@@ -319,26 +301,6 @@ def construir_dataset_p2(
     float_cols = df.select_dtypes("float64").columns.difference(["latitud", "longitud"])
     df[float_cols] = df[float_cols].astype("float32")
     return df
-
-
-def agregar_calendario_p2(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Agrega variables de calendario de la hora de emisión.
-
-    La hora en seno y coseno permite que un modelo lineal entienda que las 23:00 y las 0:00
-    son contiguas. El fin de semana y los feriados cambian por completo el patrón de viajes
-    al trabajo y a la escuela, que es lo que vacía y llena las estaciones.
-    """
-    ts = df["timestamp"]
-    df["hora"] = ts.dt.hour.astype("int8")
-    df["dia_semana"] = ts.dt.weekday.astype("int8")
-    df["fin_de_semana"] = (df["dia_semana"] >= 5).astype("int8")
-    df["feriado"] = ts.dt.normalize().isin(pd.to_datetime(P2_HOLIDAYS)).astype("int8")
-    df["mes"] = ts.dt.month.astype("int8")
-    df["hora_sin"] = np.sin(2 * np.pi * df["hora"] / 24)
-    df["hora_cos"] = np.cos(2 * np.pi * df["hora"] / 24)
-    return df
-
 
 def tasa_historica_riesgo(train: pd.DataFrame, target: str = "y_riesgo") -> pd.DataFrame:
     """

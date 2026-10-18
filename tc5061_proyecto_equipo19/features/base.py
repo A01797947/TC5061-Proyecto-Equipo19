@@ -25,6 +25,7 @@ import typer
 from tc5061_proyecto_equipo19.config import (
     FECHA_FIN,
     FECHA_INICIO,
+    FERIADOS,
     FIN_ENTRENAMIENTO,
     FIN_VALIDACION,
     INICIO_PRUEBA,
@@ -81,6 +82,24 @@ def agregar_variables_temporales(df: pd.DataFrame) -> pd.DataFrame:
     df["duracion_viaje"] = (df["end_time"] - df["start_time"]).dt.total_seconds() / 60.0
     return df
 
+
+def agregar_calendario(df: pd.DataFrame, columna_tiempo: str = "timestamp") -> pd.DataFrame:
+    """
+    Agrega variables de calendario de la hora de emisión.
+
+    La hora en seno y coseno permite que un modelo lineal entienda que las 23:00 y las 0:00
+    son contiguas. El fin de semana y los feriados cambian por completo el patrón de viajes
+    al trabajo y a la escuela, que es lo que vacía y llena las estaciones.
+    """
+    ts = df["timestamp"]
+    df["hora"] = ts.dt.hour.astype("int8")
+    df["dia_semana"] = ts.dt.weekday.astype("int8")
+    df["fin_de_semana"] = (df["dia_semana"] >= 5).astype("int8")
+    df["feriado"] = ts.dt.normalize().isin(pd.to_datetime(FERIADOS)).astype("int8")
+    df["mes"] = ts.dt.month.astype("int8")
+    df["hora_sin"] = np.sin(2 * np.pi * df["hora"] / 24)
+    df["hora_cos"] = np.cos(2 * np.pi * df["hora"] / 24)
+    return df
 
 def limpiar_datos_viajes(df: pd.DataFrame) -> pd.DataFrame:
     """Elimina viajes con fechas inválidas, con fin anterior al inicio y duplicados.
