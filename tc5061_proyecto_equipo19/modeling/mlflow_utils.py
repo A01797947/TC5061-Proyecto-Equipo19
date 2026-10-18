@@ -127,7 +127,7 @@ def registrar_run(
         El 'run_id' del run creado"""
 
     with iniciar_run(nonmbre, pregunta= pregunta, tipo=tipo, params=params) as run :
-        for clave, valor in (metricas or {}).items:
+        for clave, valor in (metricas or {}).items():
             if isinstance(valor, (int, float)) and math.isfinite(valor):
                 mlflow.log_metric(clave, valor)
 
