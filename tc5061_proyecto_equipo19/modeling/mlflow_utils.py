@@ -17,10 +17,13 @@ Ejemplo:
 from __future__ import annotations
 
 from contextlib import contextmanager
+import math
+from pathlib import Path
 import subprocess
 
 from loguru import logger
 import mlflow
+import mlflow.sklearn
 
 from tc5061_proyecto_equipo19.config import (
     EQUIPO,
@@ -97,3 +100,40 @@ def iniciar_run(nombre: str, pregunta: str, tipo: str, params: dict | None = Non
         mlflow.log_artifact(str(MANIFEST_PATH), artifact_path="datos")
         logger.info(f"Run {nombre} ({run.info.run_id})")
         yield run
+
+
+def registrar_run(
+        nonmbre:str,
+        pregunta: str,
+        tipo: str,
+        params: dict | None = None,
+        metricas: dict | None = None,
+        artefactos: list[Path] | None = None,
+        modelo= None,
+) -> str:
+
+    """Registra un modelo entrenado como un run completo del experimento
+    
+    Args:
+        nombre: Nombre del rum (Eg. 'P1-baseline-regresion-lineal')
+        pregunta: Pregunta de negocio 'P1', 'P2', 'P3'
+        tipo: 'baseline'
+        params: Parámetros propios del modelo
+        metricas: Métricas {nombre: valor}. se omiten las no númericas o no fínitas
+        artefactos: Rutas de archivos a adjuntar al run
+        modelo: Estimador o Pipelines de sckit-learn a guardar como artecfacto
+        
+    Return:
+        El 'run_id' del run creado"""
+
+    with iniciar_run(nonmbre, pregunta= pregunta, tipo=tipo, params=params) as run :
+        for clave, valor in (metricas or {}).items():
+            if isinstance(valor, (int, float)) and math.isfinite(valor):
+                mlflow.log_metric(clave, valor)
+
+        for ruta in artefactos or []:
+            mlflow.log_artifacts(str(ruta))
+
+        if modelo is not None:
+            mlflow.sklearn.log_model(modelo, name="modelo")
+        return run.info.run_id
