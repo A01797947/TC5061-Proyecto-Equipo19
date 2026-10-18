@@ -1,0 +1,187 @@
+<mxfile host="Electron">
+  <diagram id="arq-capas" name="Arquitectura técnica">
+    <mxGraphModel dx="650" dy="307" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1990" pageHeight="1313" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="a_RV6DAHJoH5E-VZZHjl-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#003F82;strokeWidth=3;" value="" vertex="1">
+          <mxGeometry height="1296" width="1970" x="10" y="14" as="geometry" />
+        </mxCell>
+        <mxCell id="c11" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=26;fontColor=#1F3A5F;fontStyle=1;" value="Arquitectura técnica de MiBici por Capas - Detalle de componentes" vertex="1">
+          <mxGeometry height="38" width="1880" x="40" y="14" as="geometry" />
+        </mxCell>
+        <mxCell id="c12" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontColor=#6B7785;" value="Zonas: origen externo (MiBici), proyecto (repositorio y entorno local) y GitHub remoto · Equipo 19" vertex="1">
+          <mxGeometry height="26" width="1880" x="40" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="c63" parent="1" style="rounded=1;arcSize=2;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1F3A5F;strokeWidth=3;fontColor=#1F3A5F;fontSize=15;fontStyle=1;align=left;verticalAlign=top;spacingLeft=16;spacingTop=10;" value="PROYECTO · repositorio y entorno local — lo que ejecuta el equipo" vertex="1">
+          <mxGeometry height="810" width="1900" x="30" y="281" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#6B7785;strokeWidth=2;dashed=1;fontColor=#6B7785;fontSize=14;fontStyle=1;align=left;verticalAlign=top;spacingLeft=14;spacingTop=7;" value="INTERNET · fuera del proyecto — MiBici publica los datos; el proyecto solo los descarga" vertex="1">
+          <mxGeometry height="111" width="1900" x="30" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c14" parent="c13" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;Portal de datos abiertos de MiBici&lt;/b&gt;&lt;br&gt;mibici.net/es/datos-abiertos&lt;br&gt;publica los archivos y sus condiciones de uso" vertex="1">
+          <mxGeometry height="65" width="446" x="12" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" parent="c13" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;Viajes mensuales (CSV)&lt;/b&gt;&lt;br&gt;un archivo por mes, 2024-01 a 2025-12&lt;br&gt;más de 9 millones de viajes" vertex="1">
+          <mxGeometry height="65" width="446" x="488" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" parent="c13" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;Catálogo de estaciones (CSV)&lt;/b&gt;&lt;br&gt;nomenclatura_2026_09.csv&lt;br&gt;ubicación y capacidad de cada estación" vertex="1">
+          <mxGeometry height="65" width="446" x="964" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c17" parent="c13" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFF4D6;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;Condiciones de uso&lt;/b&gt;&lt;br&gt;de los datos abiertos de MiBici&lt;br&gt;(pendiente de revisar)" vertex="1">
+          <mxGeometry height="65" width="446" x="1440" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c18" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#EEF2F7;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#1F3A5F;fontSize=14;fontStyle=1;align=left;verticalAlign=top;spacingLeft=14;spacingTop=7;" value="1 · Ingesta reproducible — dataset.py" vertex="1">
+          <mxGeometry height="158" width="1640" x="280" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="c19" parent="c18" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;make data&lt;/b&gt;&lt;br&gt;python -m …dataset&lt;br&gt;--inicio / --fin" vertex="1">
+          <mxGeometry height="112" width="220" x="12" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" parent="c18" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;resolve_download_urls()&lt;/b&gt;&lt;br&gt;URL de cada mes; respaldo en URLS_VIAJES de config.py" vertex="1">
+          <mxGeometry height="112" width="236" x="262" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" parent="c18" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;download_range()&lt;/b&gt;&lt;br&gt;solicitud HTTPS por archivo, con reintentos; escribe .part y lo renombra al terminar" vertex="1">
+          <mxGeometry height="112" width="236" x="528" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" parent="c18" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;process_range()&lt;/b&gt;&lt;br&gt;CSV → Parquet mensual, esquema versionado y compresión snappy" vertex="1">
+          <mxGeometry height="112" width="236" x="794" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" parent="c18" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFF4D6;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;generate_manifest()&lt;/b&gt;&lt;br&gt;SHA-256 por archivo; calcular_version_datos() → data_version" vertex="1">
+          <mxGeometry height="112" width="236" x="1060" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c24" parent="c18" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="data/raw&lt;br&gt;data/processed/&lt;br&gt;trips_YYYY_MM.parquet&lt;br&gt;stations.parquet&lt;br&gt;references/data_manifest.json" vertex="1">
+          <mxGeometry height="112" width="296" x="1326" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c25" edge="1" parent="1" source="c19" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c20" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c26" edge="1" parent="1" source="c20" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c21" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c27" edge="1" parent="1" source="c21" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c22" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c28" edge="1" parent="1" source="c22" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c23" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c29" edge="1" parent="1" source="c23" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c24" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c30" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#EEF2F7;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#1F3A5F;fontSize=14;fontStyle=1;align=left;verticalAlign=top;spacingLeft=14;spacingTop=7;" value="2 · Feature engineering — paquete features/" vertex="1">
+          <mxGeometry height="154" width="1640" x="280" y="527" as="geometry" />
+        </mxCell>
+        <mxCell id="c31" parent="c30" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;features/p1.py&lt;/b&gt;&lt;br&gt;construir_demanda_diaria()&lt;br&gt;→ X, y por fecha y estación" vertex="1">
+          <mxGeometry height="108" width="200" x="12" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c32" parent="c30" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;features/p3.py&lt;/b&gt;&lt;br&gt;construir_features_estaciones()&lt;br&gt;perfil de uso por estación" vertex="1">
+          <mxGeometry height="108" width="200" x="236" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c33" parent="c30" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;features/base.py&lt;/b&gt; (compartido)&lt;br&gt;cargar_datos_viajes_y_estaciones · limpiar_datos_viajes · mascara_viajes_consistentes · agregar_variables_temporales · agregar_calendario · particion_temporal · dividir_particiones&lt;br&gt;&lt;i&gt;make features&lt;/i&gt;" vertex="1">
+          <mxGeometry height="108" width="380" x="460" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c34" parent="c30" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="interim/&lt;br&gt;viajes_limpios_&lt;wbr&gt;enriquecidos&lt;wbr&gt;.parquet" vertex="1">
+          <mxGeometry height="108" width="210" x="864" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c35" parent="c30" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;features/p2.py&lt;/b&gt;&lt;br&gt;cargar_viajes_p2 · construir_flujos_horarios · construir_dataset_p2 · tasa_historica_riesgo · build_p2_features&lt;br&gt;usa funciones de base.py&lt;br&gt;&lt;i&gt;make features_p2&lt;/i&gt;" vertex="1">
+          <mxGeometry height="108" width="330" x="1098" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c36" parent="c30" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="processed/&lt;br&gt;p2_features&lt;wbr&gt;.parquet" vertex="1">
+          <mxGeometry height="108" width="176" x="1452" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c37" edge="1" parent="1" source="c33" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c34" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c38" edge="1" parent="1" source="c35" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c36" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c39" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#EEF2F7;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#1F3A5F;fontSize=14;fontStyle=1;align=left;verticalAlign=top;spacingLeft=14;spacingTop=7;" value="3 · Entrenamiento — modeling/" vertex="1">
+          <mxGeometry height="154" width="1640" x="280" y="725" as="geometry" />
+        </mxCell>
+        <mxCell id="c40" parent="c39" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;train_P1.py&lt;/b&gt; · P1 demanda&lt;br&gt;build_pipeline(): OneHotEncoder + regresor&lt;br&gt;Regresión lineal (baseline), Ridge (candidato)&lt;br&gt;lee viajes_limpios_enriquecidos.parquet&lt;br&gt;&lt;i&gt;python -m …modeling.train_P1&lt;/i&gt;" vertex="1">
+          <mxGeometry height="108" width="400" x="12" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c41" parent="c39" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;train_P3.py&lt;/b&gt; · P3 segmentación&lt;br&gt;load_data() · get_feature_columns()&lt;br&gt;StandardScaler + K-Means, baseline y candidato&lt;br&gt;lee viajes limpios y stations.parquet&lt;br&gt;&lt;i&gt;python -m …modeling.train_P3 --trips-csv …&lt;/i&gt;" vertex="1">
+          <mxGeometry height="108" width="400" x="442" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c42" parent="c39" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;train_p2.py&lt;/b&gt; · P2 riesgo&lt;br&gt;dividir_particiones() de features/base&lt;br&gt;tasa histórica, regla de ocupación, regresión logística, HistGradientBoosting&lt;br&gt;lee p2_features.parquet&lt;br&gt;&lt;i&gt;make train_p2 (--rebuild, --models)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="108" width="400" x="872" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c43" parent="c39" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="models/p2 · reports/figures/p2&lt;br&gt;interim/p3_baseline y p3_candidate&lt;br&gt;(clusters_map.png, cluster_summary.csv)&lt;br&gt;gráfica real vs predicho de P1" vertex="1">
+          <mxGeometry height="108" width="326" x="1302" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c44" edge="1" parent="1" source="c42" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c43" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c45" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#EEF2F7;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#1F3A5F;fontSize=14;fontStyle=1;align=left;verticalAlign=top;spacingLeft=14;spacingTop=7;" value="4 · Seguimiento de experimentos — mlflow_utils.py" vertex="1">
+          <mxGeometry height="144" width="1640" x="280" y="923" as="geometry" />
+        </mxCell>
+        <mxCell id="c46" parent="c45" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;① configurar_experimento()&lt;/b&gt;&lt;br&gt;una vez por script: fija la URI y el experimento y etiqueta equipo, data_version y git_commit" vertex="1">
+          <mxGeometry height="98" width="300" x="12" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c47" parent="c45" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;② registrar_run()&lt;/b&gt;&lt;br&gt;P1 y P3: abre el run con ③ y registra parámetros, métricas finitas, artefactos y modelo (name=&amp;quot;modelo&amp;quot;)" vertex="1">
+          <mxGeometry height="98" width="300" x="342" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c48" parent="c45" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;③ iniciar_run()&lt;/b&gt;&lt;br&gt;context manager: abre el run y lo etiqueta con pregunta y tipo_modelo; P2 lo usa directo" vertex="1">
+          <mxGeometry height="98" width="300" x="672" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c49" parent="c45" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFF4D6;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;Tags de cada run&lt;/b&gt;&lt;br&gt;pregunta (P1/P2/P3) · tipo_modelo · equipo · git_commit · data_version" vertex="1">
+          <mxGeometry height="98" width="300" x="1002" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c50" parent="c45" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="mlflow.db (sqlite)&lt;br&gt;mlartifacts/&lt;br&gt;experimento mibici-equipo19&lt;br&gt;&lt;i&gt;make mlflow-ui&lt;/i&gt;" vertex="1">
+          <mxGeometry height="98" width="296" x="1332" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c51" edge="1" parent="1" source="c49" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c50" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c52" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2A9D8F;strokeWidth=2;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;config.py&lt;/b&gt; · fuente única&lt;br&gt;&lt;b&gt;Descarga&lt;/b&gt;&lt;br&gt;MIBICI_*_URL · URLS_VIAJES · URL_ESTACIONES&lt;br&gt;&lt;b&gt;Datos&lt;/b&gt;&lt;br&gt;DATA_SCHEMA_VERSION · PARQUET_COMPRESSION" vertex="1">
+          <mxGeometry height="158" width="190" x="50" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="c53" edge="1" parent="1" source="c52" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6B7785;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c18" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c54" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;Rutas&lt;/b&gt;&lt;br&gt;PROJ_ROOT · DATA_DIR · MODELS_DIR · REPORTS_DIR&lt;br&gt;&lt;b&gt;Tiempo&lt;/b&gt;&lt;br&gt;FECHA_INICIO / FECHA_FIN&lt;br&gt;FIN_ENTRENAMIENTO&lt;br&gt;INICIO_VALIDACION · FIN_VALIDACION&lt;br&gt;INICIO_PRUEBA · FERIADOS" vertex="1">
+          <mxGeometry height="154" width="190" x="50" y="527" as="geometry" />
+        </mxCell>
+        <mxCell id="c55" edge="1" parent="1" source="c54" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6B7785;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c30" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c56" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;Reproducibilidad&lt;/b&gt;&lt;br&gt;RANDOM_SEED = 42&lt;br&gt;&lt;b&gt;Parámetros de P2&lt;/b&gt;&lt;br&gt;umbrales de ocupación · HORIZON_HOURS · TOP_K · FEATURES_PATH" vertex="1">
+          <mxGeometry height="154" width="190" x="50" y="725" as="geometry" />
+        </mxCell>
+        <mxCell id="c57" edge="1" parent="1" source="c56" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6B7785;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c39" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c58" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;MLflow&lt;/b&gt;&lt;br&gt;MLFLOW_EXPERIMENT_NAME&lt;br&gt;MLFLOW_TRACKING_URI&lt;br&gt;MLFLOW_ARTIFACT_LOCATION" vertex="1">
+          <mxGeometry height="144" width="190" x="50" y="923" as="geometry" />
+        </mxCell>
+        <mxCell id="c59" edge="1" parent="1" source="c58" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6B7785;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c45" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c60" edge="1" parent="1" source="c18" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c30" value="Parquet mensual">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c61" edge="1" parent="1" source="c30" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c39" value="tablas de features">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c62" edge="1" parent="1" source="c39" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#2A9D8F;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c45" value="métricas y modelos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c64" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#6B7785;strokeWidth=2;dashed=1;fontColor=#6B7785;fontSize=14;fontStyle=1;align=left;verticalAlign=top;spacingLeft=14;spacingTop=7;" value="INTERNET · GitHub — repositorio remoto del equipo" vertex="1">
+          <mxGeometry height="82" width="1900" x="30" y="1161" as="geometry" />
+        </mxCell>
+        <mxCell id="c65" parent="c64" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C9D3E0;strokeWidth=1;fontColor=#2B2B2B;fontSize=12;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" value="&lt;b&gt;GitHub Flow&lt;/b&gt;: ramas feat/*, PR con revisión, rama main protegida y commits convencionales (feat, fix, refactor, docs). El commit de cada corrida se registra en MLflow como git_commit." vertex="1">
+          <mxGeometry height="36" width="1876" x="12" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c66" edge="1" parent="1" source="c13" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=3;strokeColor=#1F3A5F;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c21" value="HTTPS GET · única salida a internet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c67" edge="1" parent="1" source="c64" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6B7785;dashed=1;exitX=0.55;exitY=0;exitDx=0;exitDy=0;entryX=0.55;entryY=1;entryDx=0;entryDy=0;fontSize=12;fontStyle=1;fontColor=#1F3A5F;labelBackgroundColor=#FFFFFF;" target="c45" value="git push / git_commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c68" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontColor=#6B7785;" value="Flechas verdes: flujo de datos y llamadas · Punteadas: configuración (izquierda) y versionado de código (abajo) · Cilindros: artefactos en disco · Contorno verde: componentes compartidos · Amarillo: puntos de trazabilidad." vertex="1">
+          <mxGeometry height="26" width="1880" x="40" y="1255" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
