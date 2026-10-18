@@ -121,7 +121,7 @@ def registrar_run(
         params: Parámetros propios del modelo
         metricas: Métricas {nombre: valor}. se omiten las no númericas o no fínitas
         artefactos: Rutas de archivos a adjuntar al run
-        modelo: Estimador o Popelines de sckit-learn a giardar como artecfacto
+        modelo: Estimador o Pipelines de sckit-learn a guardar como artecfacto
         
     Return:
         El 'run_id' del run creado"""
@@ -135,5 +135,5 @@ def registrar_run(
             mlflow.log_artifacts(str(ruta))
 
         if modelo is not None:
-            mlflow.sklearn.log_model(modelo, artifact_path="model")
+            mlflow.sklearn.log_model(modelo, name="modelo")
         return run.info.run_id
