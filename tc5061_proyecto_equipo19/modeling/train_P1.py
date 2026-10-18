@@ -11,6 +11,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
 from tc5061_proyecto_equipo19.config import INTERIM_DATA_DIR
+from tc5061_proyecto_equipo19.features.p1 import construir_demanda_diaria
 from tc5061_proyecto_equipo19.modeling.mlflow_utils import configurar_experimento, registrar_run
 
 
@@ -19,24 +20,6 @@ def load_data(file_path: Path) -> pd.DataFrame:
     """Carga el dataset procesado desde un archivo parquet."""
     print(f"Cargando datos desde: {file_path}")
     return pd.read_parquet(file_path)
-
-
-# Función para generación del dataset como se requiere para este modelo.
-def prepare_features(df: pd.DataFrame):
-    """Realiza la agrupación por fecha y estación de origen, y separa X y y."""
-    df_grouped = df.groupby([
-        'Año', 
-        'Mes', 
-        'Dia', 
-        'Dia_semana', 
-        'origin_station_id', 
-    ]).size().reset_index(name='cantidad_viajes')
-    
-    X = df_grouped[['Año', 'Mes', 'Dia', 'Dia_semana', 'origin_station_id']]
-    y = df_grouped['cantidad_viajes']
-    
-    return X, y, df_grouped
-
 
 # Construcción del pipeline genérico que acepta cualquier modelo
 def build_pipeline(model) -> Pipeline:
@@ -99,7 +82,7 @@ if __name__ == "__main__":
     df = load_data(Path(args.filepath))
     
     # Ingeniería de características y agrupación
-    X, y, df_grouped = prepare_features(df)
+    X, y, df_grouped = construir_demanda_diaria(df)
     
     # División de datos
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
