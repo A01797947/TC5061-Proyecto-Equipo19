@@ -61,7 +61,6 @@ El ML Canvas y el diagrama de arquitectura están en [`references/`](references/
 ├── requirements.txt   <- Dependencias con versiones fijadas
 └── tc5061_proyecto_equipo19
     ├── config.py      <- Rutas, fechas, particiones, semillas, URLs y configuración de MLflow
-    ├── config_p2.py   <- Parámetros de la etiqueta y los modelos de P2
     ├── dataset.py     <- Ingesta: descarga, normalización, Parquet y manifiesto
     ├── features/      <- Paquete de feature engineering reutilizable
         ├── base.py    <- Carga, limpieza, calendario y partición temporal (compartido)

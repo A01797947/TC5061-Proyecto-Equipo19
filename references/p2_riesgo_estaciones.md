@@ -2,7 +2,7 @@
 
 **Pregunta.** ¿Una estación estará en riesgo de quedarse sin bicicletas o sin anclajes disponibles en las próximas tres horas?
 
-**Tipo de tarea.** Clasificación binaria por estación × hora de emisión. Código: `tc5061_proyecto_equipo19/features/p2.py` (datos y variables), `tc5061_proyecto_equipo19/modeling/train_p2.py` (modelos, métricas y MLflow) y `tc5061_proyecto_equipo19/config_p2.py` (parámetros de la aproximación del riesgo). Fechas, particiones, semilla y MLflow vienen de `config.py`, y el registro de cada run usa `modeling/mlflow_utils.py`.
+**Tipo de tarea.** Clasificación binaria por estación × hora de emisión. Código: `tc5061_proyecto_equipo19/features/p2.py` (datos y variables), `tc5061_proyecto_equipo19/modeling/train_p2.py` (modelos, métricas y MLflow) y `tc5061_proyecto_equipo19/config.py` (parámetros de la aproximación del riesgo). Fechas, particiones, semilla y MLflow vienen de `config.py`, y el registro de cada run usa `modeling/mlflow_utils.py`.
 
 ## 1. Formulación
 
@@ -35,7 +35,7 @@ Cada supuesto y por qué se eligió:
 5. **Riesgo bidireccional en una sola etiqueta.** La decisión es la misma (mandar camión); lo que cambia es la carga. Se conservan `y_riesgo_vacia` y `y_riesgo_llena` para medir el *recall* de cada tipo y para que el supervisor sepa qué llevar.
 6. **Ventana dentro del mismo día de servicio.** Se emite de 6:00 a 20:00 para que *h+3* no pase de las 23:00. Así ninguna etiqueta mezcla dos días y los cortes de la partición, a medianoche, no se contaminan.
 
-**Limitaciones declaradas.** No se observa la redistribución durante el día ni las bicis fuera de servicio; la capacidad viene de un catálogo de 2026-09 posterior al periodo. Por eso la etiqueta mide *presión de demanda neta sobre la capacidad* más que inventario real. Los umbrales y la ocupación inicial viven en `config_p2.py` y se registran como parámetros en cada run; si la prevalencia observada se aleja mucho del rango útil (5 % a 30 %), se ajustan ahí. Esta definición amplía la de la propuesta (§1 y §2.3), que solo cubría el vaciado por flujo neto de tres horas.
+**Limitaciones declaradas.** No se observa la redistribución durante el día ni las bicis fuera de servicio; la capacidad viene de un catálogo de 2026-09 posterior al periodo. Por eso la etiqueta mide *presión de demanda neta sobre la capacidad* más que inventario real. Los umbrales y la ocupación inicial viven en `config.py` y se registran como parámetros en cada run; si la prevalencia observada se aleja mucho del rango útil (5 % a 30 %), se ajustan ahí. Esta definición amplía la de la propuesta (§1 y §2.3), que solo cubría el vaciado por flujo neto de tres horas.
 
 ## 3. Pipeline
 
