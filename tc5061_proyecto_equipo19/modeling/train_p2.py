@@ -58,7 +58,7 @@ from tc5061_proyecto_equipo19.config import (
     PROCESSED_DATA_DIR,
     RANDOM_SEED,
 )
-from tc5061_proyecto_equipo19.features_p2 import (
+from tc5061_proyecto_equipo19.features.p2 import (
     P2_FEATURE_COLUMNS,
     build_p2_features,
     tasa_historica_riesgo,

@@ -3,7 +3,7 @@ Variables y etiqueta de P2: riesgo de que una estación se quede sin bicicletas 
 
 Uso desde la terminal (desde la raíz del repositorio)::
 
-    python -m tc5061_proyecto_equipo19.features_p2
+    python -m tc5061_proyecto_equipo19.features.p2
 """
 
 from pathlib import Path
