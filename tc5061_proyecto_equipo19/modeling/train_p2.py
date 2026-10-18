@@ -486,7 +486,7 @@ def main(
             {
                 f"limpieza_{k}": v
                 for k, v in stats.items()
-                if k in {"viajes_validos", "fechas_corregidas", "viajes_descartados"}
+                if k in {"viajes_validos", "viajes_descartados"}
             }
         )
     configurar_experimento()

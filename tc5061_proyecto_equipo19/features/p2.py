@@ -74,65 +74,12 @@ P2_HOLIDAYS = [
 ]
 
 
-def _swap_day_month(series: pd.Series) -> pd.Series:
-    """Intercambia día y mes de una serie de fechas; deja NaT si la fecha no existe."""
-    swapped = pd.to_datetime(
-        {
-            "year": series.dt.year,
-            "month": series.dt.day,
-            "day": series.dt.month,
-            "hour": series.dt.hour,
-            "minute": series.dt.minute,
-            "second": series.dt.second,
-        },
-        errors="coerce",
-    )
-    return swapped
-
-
-def corregir_fechas_invertidas(
-    df: pd.DataFrame, year: int, month: int
-) -> tuple[pd.DataFrame, int]:
-    """
-    Repara viajes cuyo día y mes quedaron invertidos al leer el CSV.
-
-    La ingesta usa ``format="mixed"`` y en algunos archivos (2024-09 y 2024-10) lee
-    ``09/12`` como 9 de diciembre en lugar de 12 de septiembre, lo que produce duraciones
-    negativas. Si el inicio de un viaje cae fuera del mes de su archivo y al intercambiar
-    día y mes cae dentro, se corrige; lo mismo con el fin cuando así la duración se vuelve
-    razonable. Para P2 importa porque una fecha mal leída mueve una salida o una llegada a
-    otro mes y deforma el balance de la estación.
-
-    Returns:
-        El DataFrame corregido y el número de viajes modificados.
-    """
-    df = df.copy()
-    start = df["start_time"]
-    in_month = (start.dt.year == year) & (start.dt.month == month)
-
-    swapped_start = _swap_day_month(start)
-    fix_start = ~in_month & (swapped_start.dt.year == year) & (swapped_start.dt.month == month)
-    df.loc[fix_start, "start_time"] = swapped_start[fix_start]
-
-    # El fin se corrige si el viaje sigue con duración negativa o de más de un día.
-    duration = df["end_time"] - df["start_time"]
-    suspicious_end = (duration < pd.Timedelta(0)) | (duration > pd.Timedelta(days=1))
-    swapped_end = _swap_day_month(df["end_time"])
-    new_duration = swapped_end - df["start_time"]
-    fix_end = (
-        suspicious_end & (new_duration >= pd.Timedelta(0)) & (new_duration <= pd.Timedelta(days=1))
-    )
-    df.loc[fix_end, "end_time"] = swapped_end[fix_end]
-
-    return df, int((fix_start | fix_end).sum())
-
-
 def cargar_viajes_p2(processed_dir: Path) -> tuple[pd.DataFrame, dict]:
     """
     Carga los Parquet mensuales con solo las columnas que usa P2 y limpia las fechas.
 
-    Lee archivo por archivo para conocer el mes al que pertenece cada viaje, corrige la
-    inversión de día y mes y descarta viajes que siguen siendo inconsistentes: inicio fuera
+    Lee archivo por archivo para conocer el mes al que pertenece cada viaje 
+    y descarta viajes que siguen siendo inconsistentes: inicio fuera
     del mes de su archivo, duración negativa o mayor a 24 horas. Un viaje se asigna al
     periodo de su ``start_time`` para que no se filtre a otro conjunto de la partición.
 
@@ -140,15 +87,12 @@ def cargar_viajes_p2(processed_dir: Path) -> tuple[pd.DataFrame, dict]:
         Viajes limpios (inicio, fin, origen, destino) y un resumen de la limpieza.
     """
     columns = ["start_time", "end_time", "origin_station_id", "destination_station_id"]
-    frames, stats = [], {"viajes_leidos": 0, "fechas_corregidas": 0, "viajes_descartados": 0}
+    frames, stats = [], {"viajes_leidos": 0, "viajes_descartados": 0}
 
     for path in sorted(Path(processed_dir).glob("trips_*.parquet")):
         year, month = (int(part) for part in path.stem.split("_")[1:3])
         df = pd.read_parquet(path, columns=columns)
         stats["viajes_leidos"] += len(df)
-
-        df, fixed = corregir_fechas_invertidas(df, year, month)
-        stats["fechas_corregidas"] += fixed
 
         duration = df["end_time"] - df["start_time"]
         valid = (
