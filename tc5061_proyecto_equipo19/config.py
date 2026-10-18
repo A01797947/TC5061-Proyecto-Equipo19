@@ -14,10 +14,11 @@ from loguru import logger
 # Variables de entorno opcionales (por ejemplo MLFLOW_TRACKING_URI) desde .env
 load_dotenv()
 
-# ---------------------------------------------------------------------------
-# Rutas
-# ---------------------------------------------------------------------------
+# Paths
+
 PROJ_ROOT = Path(__file__).resolve().parents[1]
+logger.info(f"PROJ_ROOT path is: {PROJ_ROOT}")
+
 
 DATA_DIR = PROJ_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
@@ -32,6 +33,7 @@ FIGURES_DIR = REPORTS_DIR / "figures"
 
 REFERENCES_DIR = PROJ_ROOT / "references"
 MANIFEST_PATH = REFERENCES_DIR / "data_manifest.json"
+PARTIAL_MANIFEST_PATH = INTERIM_DATA_DIR / "data_manifest_partial.json"
 
 # ---------------------------------------------------------------------------
 # Rango de fechas y partición temporal
@@ -63,6 +65,7 @@ MAX_FILAS_ENTRENAMIENTO = 2_000_000
 # Fuentes de datos de MiBici
 # ---------------------------------------------------------------------------
 MIBICI_DATOS_ABIERTOS_URL = "https://www.mibici.net/es/datos-abiertos/"
+MIBICI_BASE_URL = "https://mibici.net"
 MIBICI_ASSETS_URL = "https://www.mibici.net/site/assets/files"
 
 # Enlaces publicados en la página de datos abiertos. Si MiBici los cambia,
