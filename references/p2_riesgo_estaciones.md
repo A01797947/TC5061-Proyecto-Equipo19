@@ -2,7 +2,7 @@
 
 **Pregunta.** ¿Una estación estará en riesgo de quedarse sin bicicletas o sin anclajes disponibles en las próximas tres horas?
 
-**Tipo de tarea.** Clasificación binaria por estación × hora de emisión. Código: `tc5061_proyecto_equipo19/features_p2.py` (datos y variables), `tc5061_proyecto_equipo19/modeling/train_p2.py` (modelos, métricas y MLflow) y `tc5061_proyecto_equipo19/config_p2.py` (parámetros de la aproximación del riesgo). Fechas, particiones, semilla y MLflow vienen de `config.py`, y el registro de cada run usa `modeling/mlflow_utils.py`.
+**Tipo de tarea.** Clasificación binaria por estación × hora de emisión. Código: `tc5061_proyecto_equipo19/features/p2.py` (datos y variables), `tc5061_proyecto_equipo19/modeling/train_p2.py` (modelos, métricas y MLflow) y `tc5061_proyecto_equipo19/config_p2.py` (parámetros de la aproximación del riesgo). Fechas, particiones, semilla y MLflow vienen de `config.py`, y el registro de cada run usa `modeling/mlflow_utils.py`.
 
 ## 1. Formulación
 
@@ -42,11 +42,11 @@ Cada supuesto y por qué se eligió:
 | Etapa | Función | Detalle |
 |---|---|---|
 | Carga | `cargar_viajes_p2` | Lee los Parquet mensuales de la ingesta, solo inicio, fin, origen y destino |
-| Limpieza | `corregir_fechas_invertidas` | La ingesta lee algunas fechas de 2024-09 y 2024-10 con día y mes invertidos (09/12 como 9 de diciembre), lo que produce los 115 viajes de duración negativa del EDA. Si el inicio cae fuera del mes del archivo y al intercambiar día y mes cae dentro, se corrige; igual con el fin. Después se descartan los viajes que siguen fuera de su mes, con duración negativa o mayor a 24 h. Los conteos quedan como parámetros del run |
+| Limpieza | `mascara_viajes_inconsistentes` (features/base.py) |Se leen los Parquet mes por mes y se descartan los viajes cuyo inicio cae fuera del mes de su archivo, con duración negativa o mayor a 24 h. Los conteos quedan como parámetros del run |
 | Agregación | `construir_flujos_horarios` | Salidas por estación de origen y hora de inicio; llegadas por estación de destino y hora de fin; matriz estación × hora completa con ceros. Se usan las estaciones del catálogo con capacidad positiva |
 | Etiqueta | `estimar_ocupacion`, `construir_dataset_p2` | Ocupación estimada y etiqueta de la sección 2 |
-| Variables | `construir_dataset_p2`, `agregar_calendario_p2` | Ver tabla siguiente. Se descartan las filas antes del primer viaje y después del último de cada estación, para no inflar los negativos con estaciones que aún no existían |
-| Partición | `split_temporal` | Entrenamiento 2024-01 a 2025-06, validación 2025-07 a 2025-09, prueba 2025-10 a 2025-12 |
+| Variables | `construir_dataset_p2` (features/p2.py), `agregar_calendario` (features/base.py)| Ver tabla siguiente. Se descartan las filas antes del primer viaje y después del último de cada estación, para no inflar los negativos con estaciones que aún no existían |
+| Partición | `dividir_particiones`(features/base.py) | Entrenamiento 2024-01 a 2025-06, validación 2025-07 a 2025-09, prueba 2025-10 a 2025-12 |
 | Baselines y modelos | `run_model` | Sección 4 |
 | Umbral | `choose_threshold` | Maximiza F2 en validación y se aplica sin cambios a prueba |
 | Registro | `main` | Un run de MLflow por modelo |
@@ -94,7 +94,7 @@ Experimento `mibici-equipo19`, un run por modelo, ejecutado con `python -m tc506
 ```bash
 pip install -r requirements.txt
 python -m tc5061_proyecto_equipo19.dataset             # ingesta: descarga, Parquet en data/processed y manifiesto
-python -m tc5061_proyecto_equipo19.features_p2          # tabla de P2 (data/processed/p2_features.parquet)
+python -m tc5061_proyecto_equipo19.features.p2          # tabla de P2 (data/processed/p2_features.parquet)
 python -m tc5061_proyecto_equipo19.modeling.train_p2    # 4 runs en MLflow
 mlflow ui --backend-store-uri sqlite:///mlflow.db       # revisar y comparar runs
 ```

@@ -10,6 +10,7 @@ from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_har
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
+from tc5061_proyecto_equipo19.features.p3 import construir_features_estaciones
 from tc5061_proyecto_equipo19.modeling.mlflow_utils import configurar_experimento, registrar_run
 
 
@@ -38,46 +39,6 @@ def load_data(trips_path, stations_path):
     trips = _read_table(trips_path, ['start_time', 'origin_station_id', 'destination_station_id'])
     stations = _read_table(stations_path)
     return trips, stations
-
-
-def prepare_features(trips, stations):
-    trips, stations = trips.copy(), stations.copy()
-    
-    for c in ['origin_station_id','destination_station_id']:
-        trips[c] = trips[c].astype('string').str.strip()
-    
-    stations['station_id'] = stations['station_id'].astype('string').str.strip()
-    trips['start_time'] = pd.to_datetime(trips['start_time'], errors='coerce')
-    trips = trips.dropna(subset=['start_time','origin_station_id','destination_station_id']).copy()
-    
-    for c in ['latitude','longitude','capacity']:
-        stations[c] = pd.to_numeric(stations[c], errors='coerce')
-    
-    stations = stations.dropna(subset=['station_id']).drop_duplicates('station_id')
-    
-    trips['hour'] = trips['start_time'].dt.hour
-    trips['weekday'] = trips['start_time'].dt.dayofweek
-    
-    out = trips.groupby('origin_station_id').size().rename_axis('station_id').rename('viajes_iniciados')
-    inc = trips.groupby('destination_station_id').size().rename_axis('station_id').rename('viajes_finalizados')
-    
-    usage = pd.concat([out,inc],axis=1).fillna(0)
-    usage['total_viajes'] = usage['viajes_iniciados'] + usage['viajes_finalizados']
-    
-    hourly = pd.crosstab(trips['origin_station_id'],trips['hour']).reindex(columns=range(24),fill_value=0)
-    hourly.columns = [f'salidas_hora_{h:02d}' for h in range(24)]; hourly.index.name='station_id'
-    
-    daily = pd.crosstab(trips['origin_station_id'],trips['weekday']).reindex(columns=range(7),fill_value=0)
-    daily.columns = [f'salidas_dia_{d}' for d in range(7)]; daily.index.name='station_id'
-    
-    features = usage.join(hourly,how='outer').join(daily,how='outer').fillna(0).reset_index()
-    features = features.merge(stations[['station_id','latitude','longitude','capacity']],on='station_id',how='left',validate='one_to_one')
-    features = features.dropna(subset=['latitude','longitude'])
-    features = features.loc[features['total_viajes'] > 0].reset_index(drop=True)
-    
-    if features.empty: raise ValueError('No hay estaciones con viajes y coordenadas válidas.')
-    
-    return features
 
 
 def get_feature_columns(features, model_type):
@@ -125,7 +86,7 @@ def main():
     configurar_experimento()
     
     trips, stations = load_data(args.trips_csv,args.stations_csv)
-    features = prepare_features(trips,stations)
+    features = construir_features_estaciones(trips,stations)
     columns = get_feature_columns(features,args.model_type)
     
     run_name = (f"P3-{args.model_type}_k{args.n_clusters}_init{args.n_init}_seed{args.random_state}")

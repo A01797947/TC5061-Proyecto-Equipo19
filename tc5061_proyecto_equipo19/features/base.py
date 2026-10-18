@@ -25,6 +25,7 @@ import typer
 from tc5061_proyecto_equipo19.config import (
     FECHA_FIN,
     FECHA_INICIO,
+    FERIADOS,
     FIN_ENTRENAMIENTO,
     FIN_VALIDACION,
     INICIO_PRUEBA,
@@ -32,6 +33,8 @@ from tc5061_proyecto_equipo19.config import (
     INTERIM_DATA_DIR,
     PROCESSED_DATA_DIR,
 )
+
+DURACION_MAXIMA_VIAJE = pd.Timedelta(days=1)
 
 app = typer.Typer()
 
@@ -82,6 +85,25 @@ def agregar_variables_temporales(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def agregar_calendario(df: pd.DataFrame, columna_tiempo: str = "timestamp") -> pd.DataFrame:
+    """
+    Agrega variables de calendario de la hora de emisión.
+
+    La hora en seno y coseno permite que un modelo lineal entienda que las 23:00 y las 0:00
+    son contiguas. El fin de semana y los feriados cambian por completo el patrón de viajes
+    al trabajo y a la escuela, que es lo que vacía y llena las estaciones.
+    """
+    ts = df["timestamp"]
+    df["hora"] = ts.dt.hour.astype("int8")
+    df["dia_semana"] = ts.dt.weekday.astype("int8")
+    df["fin_de_semana"] = (df["dia_semana"] >= 5).astype("int8")
+    df["feriado"] = ts.dt.normalize().isin(pd.to_datetime(FERIADOS)).astype("int8")
+    df["mes"] = ts.dt.month.astype("int8")
+    df["hora_sin"] = np.sin(2 * np.pi * df["hora"] / 24)
+    df["hora_cos"] = np.cos(2 * np.pi * df["hora"] / 24)
+    return df
+
+
 def limpiar_datos_viajes(df: pd.DataFrame) -> pd.DataFrame:
     """Elimina viajes con fechas inválidas, con fin anterior al inicio y duplicados.
 
@@ -97,6 +119,25 @@ def limpiar_datos_viajes(df: pd.DataFrame) -> pd.DataFrame:
         f"Limpieza: {antes:,} -> {len(df_limpio):,} viajes ({antes - len(df_limpio):,} fuera)"
     )
     return df_limpio
+
+
+def mascara_viajes_consistentes(
+    df: pd.DataFrame, anio: int, mes: int, duracion_maxima: pd.Timedelta = DURACION_MAXIMA_VIAJE
+) -> pd.Series:
+    """Marca los viajes consistentes con el archivo mensual del que provienen.
+
+    Un viaje es consistente si su inicio cae en el mes del archivo y su duración
+    está entre cero y ``duracion_maxima``. Los ``NaT`` quedan fuera de forma
+    implícita porque las comparaciones con ellos son falsas.
+    """
+
+    duracion = df["end_time"] - df["start_time"]
+    return (
+        (df["start_time"].dt.year == anio)
+        & (df["start_time"].dt.month == mes)
+        & (duracion >= pd.Timedelta(0))
+        & (duracion <= duracion_maxima)
+    )
 
 
 def merge_viajes_con_estaciones(df_trips: pd.DataFrame, df_stations: pd.DataFrame) -> pd.DataFrame:
@@ -119,7 +160,7 @@ def merge_viajes_con_estaciones(df_trips: pd.DataFrame, df_stations: pd.DataFram
 
 
 def particion_temporal(df: pd.DataFrame, columna_tiempo: str) -> pd.Series:
-    """Etiqueta cada fila como ``train``, ``val`` o ``test`` según su fecha.
+    """Etiqueta cada fila como ``train``, ``valid`` o ``test`` según su fecha.
 
     La partición es cronológica (fechas en ``config``): el modelo nunca ve meses
     posteriores a los que se evalúan, igual que en la operación real.
@@ -132,12 +173,27 @@ def particion_temporal(df: pd.DataFrame, columna_tiempo: str) -> pd.Series:
                 (t >= pd.Timestamp(INICIO_VALIDACION)) & (t <= pd.Timestamp(FIN_VALIDACION)),
                 t >= pd.Timestamp(INICIO_PRUEBA),
             ],
-            ["train", "val", "test"],
+            ["train", "valid", "test"],
             default="fuera",
         ),
         index=df.index,
         name="particion",
     )
+
+
+def dividir_particiones(
+    df: pd.DataFrame, columna_tiempo: str = "timestamp"
+) -> dict[str, pd.DataFrame]:
+    """Divide ``df`` en ``train``, ``valid`` y ``test`` con las fechas de ``config.py``.
+
+    Las filas que no caen en ninguna partición (etiqueta ``fuera``) se descartan.
+    """
+
+    etiquetas = particion_temporal(df, columna_tiempo)
+    return {
+        nombre: df[etiquetas == nombre].reset_index(drop=True)
+        for nombre in ("train", "valid", "test")
+    }
 
 
 @app.command()

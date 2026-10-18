@@ -63,8 +63,11 @@ El ML Canvas y el diagrama de arquitectura están en [`references/`](references/
     ├── config.py      <- Rutas, fechas, particiones, semillas, URLs y configuración de MLflow
     ├── config_p2.py   <- Parámetros de la etiqueta y los modelos de P2
     ├── dataset.py     <- Ingesta: descarga, normalización, Parquet y manifiesto
-    ├── features.py    <- Carga, limpieza, variables temporales y partición temporal
-    ├── features_p2.py <- Variables y etiqueta de riesgo de P2
+    ├── features/      <- Paquete de feature engineering reutilizable
+        ├── base.py    <- Carga, limpieza, calendario y partición temporal (compartido)
+        ├── p1.py      <- Demanda diaria por estación (P1)
+        ├── p2.py      <- Variables y etiqueta de riesgo (P2)
+        └── p3.py      <- Perfil de uso por estación (P3)
     ├── plots.py
     └── modeling
         ├── mlflow_utils.py <- Parámetros, etiquetas y artefactos comunes de cada run
@@ -142,7 +145,7 @@ Abre http://127.0.0.1:5000 y toma estas capturas:
 Clasificación por estación y hora: ¿la estación quedará vacía o llena en las próximas tres horas? La aproximación del riesgo, el pipeline, los modelos, las métricas y lo que se registra en MLflow están en [`references/p2_riesgo_estaciones.md`](references/p2_riesgo_estaciones.md).
 
 ```bash
-make features_p2   # python -m tc5061_proyecto_equipo19.features_p2: tabla de variables y etiqueta
+make features_p2   # python -m tc5061_proyecto_equipo19.features.p2: tabla de variables y etiqueta
 make train_p2      # python -m tc5061_proyecto_equipo19.modeling.train_p2: baselines y candidatos en MLflow
 ```
 

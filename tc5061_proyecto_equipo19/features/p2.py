@@ -3,13 +3,15 @@ Variables y etiqueta de P2: riesgo de que una estación se quede sin bicicletas 
 
 Uso desde la terminal (desde la raíz del repositorio)::
 
-    python -m tc5061_proyecto_equipo19.features_p2
+    python -m tc5061_proyecto_equipo19.features.p2
 """
 
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from tc5061_proyecto_equipo19.features.base import agregar_calendario, mascara_viajes_consistentes
 
 # =============================================================================
 # P2. Riesgo de que una estación se quede sin bicicletas o sin anclajes
@@ -54,85 +56,13 @@ P2_FEATURE_COLUMNS = [
     "actividad_sistema_vs_semana_pasada",
 ]
 
-# Días feriados oficiales (Ley Federal del Trabajo, art. 74) en el periodo de estudio.
-P2_HOLIDAYS = [
-    "2024-01-01",
-    "2024-02-05",
-    "2024-03-18",
-    "2024-05-01",
-    "2024-09-16",
-    "2024-10-01",
-    "2024-11-18",
-    "2024-12-25",
-    "2025-01-01",
-    "2025-02-03",
-    "2025-03-17",
-    "2025-05-01",
-    "2025-09-16",
-    "2025-11-17",
-    "2025-12-25",
-]
-
-
-def _swap_day_month(series: pd.Series) -> pd.Series:
-    """Intercambia día y mes de una serie de fechas; deja NaT si la fecha no existe."""
-    swapped = pd.to_datetime(
-        {
-            "year": series.dt.year,
-            "month": series.dt.day,
-            "day": series.dt.month,
-            "hour": series.dt.hour,
-            "minute": series.dt.minute,
-            "second": series.dt.second,
-        },
-        errors="coerce",
-    )
-    return swapped
-
-
-def corregir_fechas_invertidas(
-    df: pd.DataFrame, year: int, month: int
-) -> tuple[pd.DataFrame, int]:
-    """
-    Repara viajes cuyo día y mes quedaron invertidos al leer el CSV.
-
-    La ingesta usa ``format="mixed"`` y en algunos archivos (2024-09 y 2024-10) lee
-    ``09/12`` como 9 de diciembre en lugar de 12 de septiembre, lo que produce duraciones
-    negativas. Si el inicio de un viaje cae fuera del mes de su archivo y al intercambiar
-    día y mes cae dentro, se corrige; lo mismo con el fin cuando así la duración se vuelve
-    razonable. Para P2 importa porque una fecha mal leída mueve una salida o una llegada a
-    otro mes y deforma el balance de la estación.
-
-    Returns:
-        El DataFrame corregido y el número de viajes modificados.
-    """
-    df = df.copy()
-    start = df["start_time"]
-    in_month = (start.dt.year == year) & (start.dt.month == month)
-
-    swapped_start = _swap_day_month(start)
-    fix_start = ~in_month & (swapped_start.dt.year == year) & (swapped_start.dt.month == month)
-    df.loc[fix_start, "start_time"] = swapped_start[fix_start]
-
-    # El fin se corrige si el viaje sigue con duración negativa o de más de un día.
-    duration = df["end_time"] - df["start_time"]
-    suspicious_end = (duration < pd.Timedelta(0)) | (duration > pd.Timedelta(days=1))
-    swapped_end = _swap_day_month(df["end_time"])
-    new_duration = swapped_end - df["start_time"]
-    fix_end = (
-        suspicious_end & (new_duration >= pd.Timedelta(0)) & (new_duration <= pd.Timedelta(days=1))
-    )
-    df.loc[fix_end, "end_time"] = swapped_end[fix_end]
-
-    return df, int((fix_start | fix_end).sum())
-
 
 def cargar_viajes_p2(processed_dir: Path) -> tuple[pd.DataFrame, dict]:
     """
     Carga los Parquet mensuales con solo las columnas que usa P2 y limpia las fechas.
 
-    Lee archivo por archivo para conocer el mes al que pertenece cada viaje, corrige la
-    inversión de día y mes y descarta viajes que siguen siendo inconsistentes: inicio fuera
+    Lee archivo por archivo para conocer el mes al que pertenece cada viaje
+    y descarta viajes que siguen siendo inconsistentes: inicio fuera
     del mes de su archivo, duración negativa o mayor a 24 horas. Un viaje se asigna al
     periodo de su ``start_time`` para que no se filtre a otro conjunto de la partición.
 
@@ -140,23 +70,14 @@ def cargar_viajes_p2(processed_dir: Path) -> tuple[pd.DataFrame, dict]:
         Viajes limpios (inicio, fin, origen, destino) y un resumen de la limpieza.
     """
     columns = ["start_time", "end_time", "origin_station_id", "destination_station_id"]
-    frames, stats = [], {"viajes_leidos": 0, "fechas_corregidas": 0, "viajes_descartados": 0}
+    frames, stats = [], {"viajes_leidos": 0, "viajes_descartados": 0}
 
     for path in sorted(Path(processed_dir).glob("trips_*.parquet")):
         year, month = (int(part) for part in path.stem.split("_")[1:3])
         df = pd.read_parquet(path, columns=columns)
         stats["viajes_leidos"] += len(df)
 
-        df, fixed = corregir_fechas_invertidas(df, year, month)
-        stats["fechas_corregidas"] += fixed
-
-        duration = df["end_time"] - df["start_time"]
-        valid = (
-            (df["start_time"].dt.year == year)
-            & (df["start_time"].dt.month == month)
-            & (duration >= pd.Timedelta(0))
-            & (duration <= pd.Timedelta(days=1))
-        )
+        valid = mascara_viajes_consistentes(df, year, month)
         stats["viajes_descartados"] += int((~valid).sum())
         frames.append(df[valid])
 
@@ -356,7 +277,7 @@ def construir_dataset_p2(
     df["latitud"] = catalog["latitude"].to_numpy()[station_idx]
     df["longitud"] = catalog["longitude"].to_numpy()[station_idx]
 
-    df = agregar_calendario_p2(df)
+    df = agregar_calendario(df)
 
     # Periodo de vida de cada estación según sus viajes observados.
     total = flujos["salidas"] + flujos["llegadas"]
@@ -374,25 +295,6 @@ def construir_dataset_p2(
         df[col] = df[col].astype("int8")
     float_cols = df.select_dtypes("float64").columns.difference(["latitud", "longitud"])
     df[float_cols] = df[float_cols].astype("float32")
-    return df
-
-
-def agregar_calendario_p2(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Agrega variables de calendario de la hora de emisión.
-
-    La hora en seno y coseno permite que un modelo lineal entienda que las 23:00 y las 0:00
-    son contiguas. El fin de semana y los feriados cambian por completo el patrón de viajes
-    al trabajo y a la escuela, que es lo que vacía y llena las estaciones.
-    """
-    ts = df["timestamp"]
-    df["hora"] = ts.dt.hour.astype("int8")
-    df["dia_semana"] = ts.dt.weekday.astype("int8")
-    df["fin_de_semana"] = (df["dia_semana"] >= 5).astype("int8")
-    df["feriado"] = ts.dt.normalize().isin(pd.to_datetime(P2_HOLIDAYS)).astype("int8")
-    df["mes"] = ts.dt.month.astype("int8")
-    df["hora_sin"] = np.sin(2 * np.pi * df["hora"] / 24)
-    df["hora_cos"] = np.cos(2 * np.pi * df["hora"] / 24)
     return df
 
 

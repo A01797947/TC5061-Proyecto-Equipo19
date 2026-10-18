@@ -52,13 +52,12 @@ from tc5061_proyecto_equipo19 import config_p2 as cfg
 from tc5061_proyecto_equipo19.config import (
     FECHA_FIN,
     FECHA_INICIO,
-    FIN_ENTRENAMIENTO,
-    FIN_VALIDACION,
     MAX_FILAS_ENTRENAMIENTO,
     PROCESSED_DATA_DIR,
     RANDOM_SEED,
 )
-from tc5061_proyecto_equipo19.features_p2 import (
+from tc5061_proyecto_equipo19.features import dividir_particiones
+from tc5061_proyecto_equipo19.features.p2 import (
     P2_FEATURE_COLUMNS,
     build_p2_features,
     tasa_historica_riesgo,
@@ -103,22 +102,6 @@ MODEL_INFO = {
 # -----------------------------------------------------------------------------
 # Datos y partición
 # -----------------------------------------------------------------------------
-def split_temporal(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """
-    Partición temporal: entrenamiento, validación y prueba por fecha de emisión.
-
-    Las etiquetas miran a lo más tres horas adelante dentro del mismo día de servicio y los
-    cortes caen a medianoche, así que ninguna etiqueta de un conjunto usa horas de otro.
-    """
-    day = df["timestamp"].dt.normalize()
-    train_end = pd.Timestamp(FIN_ENTRENAMIENTO).normalize()
-    valid_end = pd.Timestamp(FIN_VALIDACION).normalize()
-    return {
-        "train": df[day <= train_end].reset_index(drop=True),
-        "valid": df[(day > train_end) & (day <= valid_end)].reset_index(drop=True),
-        "test": df[day > valid_end].reset_index(drop=True),
-    }
-
 
 def add_baseline_scores(splits: dict[str, pd.DataFrame]) -> None:
     """Agrega la tasa histórica (ajustada solo con entrenamiento) a cada conjunto."""
@@ -464,7 +447,7 @@ def main(
     else:
         df = pd.read_parquet(features_path)
 
-    splits = split_temporal(df)
+    splits = dividir_particiones(df)
     add_baseline_scores(splits)
 
     common_params = {
@@ -486,7 +469,7 @@ def main(
             {
                 f"limpieza_{k}": v
                 for k, v in stats.items()
-                if k in {"viajes_validos", "fechas_corregidas", "viajes_descartados"}
+                if k in {"viajes_validos", "viajes_descartados"}
             }
         )
     configurar_experimento()

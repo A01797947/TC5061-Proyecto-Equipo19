@@ -76,7 +76,7 @@ mlflow-ui:
 ## P2: tabla de variables y etiqueta de riesgo
 .PHONY: features_p2
 features_p2:
-	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.features_p2
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.features.p2
 
 ## P2: baselines y candidatos registrados en MLflow
 .PHONY: train_p2
