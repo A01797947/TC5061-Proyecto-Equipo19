@@ -131,9 +131,8 @@ identifique exactamente el código usado; `git_dirty=True` indica lo contrario.
 ### Capturas de evidencia
 
 ```bash
-make mlflow-ui
-# equivalente a:
-mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+# Servidor requerido para Model Registry (ejecutar desde la raíz):
+mlflow server --backend-store-uri sqlite:///mlflow.db --artifacts-destination ./mlartifacts --host 127.0.0.1 --port 5000
 ```
 
 Abre http://127.0.0.1:5000 y toma estas capturas:
@@ -348,3 +347,174 @@ VS Code (con la extensión GitLens) muestra los conflictos y permite elegir entr
 - No reescribas el historial de una rama que ya se compartió.
 - Si algo salió mal en `main`, se corrige con un nuevo PR (por ejemplo `fix/...` o `git revert`), nunca con force push.
 - Los modelos y las figuras generadas se suben solo cuando el equipo lo decide, y nunca los datos crudos.
+
+
+---
+
+## Entrega MLOps: Partes A, B y C (MLflow Projects 3.x)
+
+### A. Proyecto reproducible y ejecución desde un clon limpio
+
+**Entorno:** Python 3.14 y dependencias del archivo `requirements.txt` con versiones
+fijadas, referenciado en `python_env.yaml` y declarado en `MLproject`.
+En Windows PowerShell, desde la raíz del repositorio:
+
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+**Servidor local, consola 1:**
+
+```powershell
+mlflow server --backend-store-uri sqlite:///mlflow.db --artifacts-destination ./mlartifacts --host 127.0.0.1 --port 5000
+```
+
+**Consola 2:**
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+$env:MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
+```
+
+Usar `mlflow run` en todos los experimentos entregables (desde la raíz).
+`--env-manager local` utiliza el entorno de Python ya activado; si se desea que
+MLflow cree un entorno virtual, omitir esa opción y asegurarse de disponer
+exactamente de la versión de Python de `python_env.yaml`.
+
+La ingesta vuelve a descargar los CSV crudos ausentes y produce los 24 Parquet
+más `stations.parquet` y `references/data_manifest.json`:
+
+```powershell
+mlflow run . -e ingest --env-manager local
+```
+
+Reproducción mínima de un modelo por pregunta:
+
+```powershell
+mlflow run . -e train --env-manager local -P question=p1 -P model=linear
+mlflow run . -e train --env-manager local -P question=p2 -P model=hgb
+mlflow run . -e train --env-manager local -P question=p3 -P model=kmeans
+```
+
+`config.py` centraliza rutas, meses, particiones temporales, semillas y valores
+por defecto. Los parámetros adicionales del entry point `train` solo anulan
+valores de `config.py` cuando se indican explícitamente.
+
+**Nota sobre runs:** MLflow Projects crea una corrida de orquestación; los
+entrenamientos registrados por los scripts quedan en `mibici-equipo19` y enlazan
+su corrida de orquestación mediante el tag `mlflow_project_run_id`. Esto evita
+que la ejecución caiga en el experimento `Default` y permite agrupar búsquedas.
+
+### B. Doce versiones y nested runs
+
+**P1 (baseline + tres versiones Ridge como corridas hijas):**
+
+```powershell
+mlflow run . -e train --env-manager local -P question=p1 -P model=linear
+mlflow run . -e search --env-manager local -P question=p1
+```
+
+El segundo comando crea `P1-search-ridge` como corrida padre y tres hijas con
+`alpha=0.1, 1.0, 10.0`, valores centralizados en `config.py`. Las particiones
+se preparan una sola vez en la búsqueda para ahorrar memoria y tiempo. **No
+cambia el conjunto temporal entre versiones.**
+
+**P2 (baseline + tres candidatas):**
+
+```powershell
+mlflow run . -e train --env-manager local -P question=p2 -P model=tasa_historica
+mlflow run . -e train --env-manager local -P question=p2 -P model=logreg
+mlflow run . -e train --env-manager local -P question=p2 -P model=hgb
+mlflow run . -e train --env-manager local -P question=p2 -P model=hgb -P learning_rate=0.05 -P max_iter=250
+```
+
+La tasa histórica es **baseline no entrenable** y no genera modelo serializado;
+no debe promoverse a Registry. Las tres corridas de `logreg` y `hgb` sí guardan
+modelos. P2 utiliza la misma partición de 2024–2025 y prioriza precisión en
+`top_k` para ordenar la atención del personal operativo; también reporta
+average precision, recall, F1, F2, curva PR, matriz de confusión y calibración.
+
+**P3 (baseline y tres variantes de K-Means):**
+
+```powershell
+mlflow run . -e train --env-manager local -P question=p3 -P model=kmeans -P model_type=baseline -P n_clusters=3
+mlflow run . -e train --env-manager local -P question=p3 -P model=kmeans -P n_clusters=3
+mlflow run . -e train --env-manager local -P question=p3 -P model=kmeans -P n_clusters=4
+mlflow run . -e train --env-manager local -P question=p3 -P model=kmeans -P n_clusters=5
+```
+
+**Cambio metodológico relevante en P3:** la versión anterior construía grupos
+sobre los 24 meses completos. La nueva implementación entrena **únicamente**
+con los perfiles de enero 2024–junio 2025 y compara la estabilidad de asignación
+en validación (julio–septiembre 2025) y prueba (octubre–diciembre 2025), sin
+reajustar el modelo. Los conteos se convierten a **viajes por día** para que
+intervalos de diferente duración sean comparables. Además de silhouette en
+train se guardan `valid_silhouette`, `test_silhouette` y el índice de Rand
+ajustado entre periodos (`valid_ari_vs_train`, `test_ari_vs_train`). Por este
+cambio **no se deben comparar directamente** los resultados de P3 con corridas
+antiguas de 24 meses; se requiere usar los nuevos baselines y justificar la
+modificación en el informe.
+
+**Estructura de artefactos:**
+
+- `data/`: manifiesto con hashes y versión completa de datos.
+- `config/`: `run_config.json` con el modelo y sus parámetros.
+- `plots/`: gráficos de evaluación (P1, P2, P3).
+- `evaluation/`: métricas y perfiles/grupos de estaciones.
+- Modelo MLflow 3 vinculado a la corrida por el tag `logged_model_uri`;
+  incluye firma y `input_example`.
+
+El log de entrada de MLflow usa **muestras de características** sin campos
+personales; la versión completa se acredita por el manifiesto. Los Parquet y
+CSV no se añaden al Git ni se publican como artefactos íntegros.
+
+### B. Comparar antes de seleccionar
+
+```powershell
+python -m tc5061_proyecto_equipo19.modeling.compare_models
+```
+
+El script compara **solo corridas terminadas con el mismo `data_version`** y
+métricas de validación: P1 `valid_mae` (menor), P2 `valid_precision_at_10`
+(mayor; `TOP_K` se configura), P3 `valid_silhouette` (mayor). Muestra valores
+de prueba únicamente como evidencia complementaria, no para elegir hiperparámetros.
+Guarda `outputs/model_comparison.json`. Complementar la elección con estabilidad
+entre periodos, desempeño frente al baseline y costo del run; rellenar
+[`reports/seleccion_modelos_plantilla.md`](reports/seleccion_modelos_plantilla.md)
+con los resultados reales de MLflow. **Los ganadores no se eligen ni registran
+sin ejecutar primero todas las versiones en el entorno local.**
+
+### C. Registrar modelos, publicar champion y comprobar carga
+
+Una vez justificados tres ganadores, reemplazar los ejemplos de RUN_ID por los
+IDs **reales** de las corridas seleccionadas (con `logged_model_uri`). No hay
+números ni IDs de modelo precargados en el Registry:
+
+```powershell
+python -m tc5061_proyecto_equipo19.modeling.register_models --question p1 --run-id RUN_ID_P1 --champion --justification "Menor MAE de validacion y mejora frente al baseline"
+python -m tc5061_proyecto_equipo19.modeling.register_models --question p2 --run-id RUN_ID_P2 --champion --justification "Mayor precision at 10, buen recall y costo aceptable"
+python -m tc5061_proyecto_equipo19.modeling.register_models --question p3 --run-id RUN_ID_P3 --champion --justification "Mejor silhouette de validacion y estabilidad temporal"
+```
+
+Se crean/actualizan los modelos:
+
+- `mibici-equipo19-p1-demanda`
+- `mibici-equipo19-p2-riesgo`
+- `mibici-equipo19-p3-grupos`
+
+Cada versión lleva en tags y descripción el nombre del equipo, corrida,
+experimento, commit y `data_version`. **Se utilizan aliases (`champion`) en
+lugar de las etapas clásicas `Production`** porque simplifican la actualización
+de versiones sin cambiar la URI de consumo.
+
+```powershell
+python -m tc5061_proyecto_equipo19.modeling.verify_models
+```
+
+La verificación carga los tres modelos desde
+`models:/mibici-equipo19-pN-...@champion` y comprueba que tengan firma.
+Para inferencia de riesgo P2 ordenando estaciones, usar el flavor
+`mlflow.sklearn.load_model(uri).predict_proba(X)[:, 1]` además de los datos de
+entrada esperados; `pyfunc.predict` del clasificador devuelve clases 0/1.

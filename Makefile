@@ -72,6 +72,10 @@ features:
 mlflow-ui:
 	mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 
+## Iniciar el servidor de tracking de MLflow
+.PHONY: mlflow-server
+mlflow-server:
+	mlflow server --backend-store-uri sqlite:///mlflow.db --artifacts-destination ./mlartifacts --host 127.0.0.1 --port 5000
 
 ## P2: tabla de variables y etiqueta de riesgo
 .PHONY: features_p2

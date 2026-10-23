@@ -62,7 +62,7 @@ from tc5061_proyecto_equipo19.features.p2 import (
     build_p2_features,
     tasa_historica_riesgo,
 )
-from tc5061_proyecto_equipo19.modeling.mlflow_utils import configurar_experimento, iniciar_run
+from tc5061_proyecto_equipo19.modeling.mlflow_utils import configurar_experimento, iniciar_run, log_modelo_sklearn
 
 app = typer.Typer()
 
@@ -109,11 +109,8 @@ def add_baseline_scores(splits: dict[str, pd.DataFrame]) -> None:
     global_rate = splits["train"][TARGET].mean()
     for name, part in splits.items():
         merged = part[["station_id", "fin_de_semana", "hora"]].merge(
-            rates, on=["station_id", "fin_de_semana", "hora"], how="left"
-        )
-        splits[name] = part.assign(
-            tasa_hist_riesgo=merged["tasa_hist_riesgo"].fillna(global_rate).to_numpy()
-        )
+            rates, on=["station_id", "fin_de_semana", "hora"], how="left")
+        splits[name] = part.assign(tasa_hist_riesgo=merged["tasa_hist_riesgo"].fillna(global_rate).to_numpy())
 
 
 def occupancy_rule_score(part: pd.DataFrame) -> np.ndarray:
@@ -191,9 +188,7 @@ def evaluate(part: pd.DataFrame, score: np.ndarray, threshold: float, prefix: st
 def plot_pr_curves(scores: dict, splits: dict, title: str, path: Path) -> None:
     fig, ax = plt.subplots(figsize=(6, 5))
     for name in ["valid", "test"]:
-        PrecisionRecallDisplay.from_predictions(
-            splits[name][TARGET], scores[name], ax=ax, name=name, plot_chance_level=name == "test"
-        )
+        PrecisionRecallDisplay.from_predictions(splits[name][TARGET], scores[name], ax=ax, name=name, plot_chance_level=name == "test")
     ax.set_title(f"Curva precisión-recall · {title}")
     fig.tight_layout()
     fig.savefig(path, dpi=120)
@@ -203,9 +198,7 @@ def plot_pr_curves(scores: dict, splits: dict, title: str, path: Path) -> None:
 def plot_confusion(part: pd.DataFrame, score: np.ndarray, threshold: float, path: Path) -> None:
     cm = confusion_matrix(part[TARGET], (score >= threshold).astype(int))
     fig, ax = plt.subplots(figsize=(5, 4.5))
-    ConfusionMatrixDisplay(cm, display_labels=["sin riesgo", "en riesgo"]).plot(
-        ax=ax, values_format=",", colorbar=False
-    )
+    ConfusionMatrixDisplay(cm, display_labels=["sin riesgo", "en riesgo"]).plot(ax=ax, values_format=",", colorbar=False)
     ax.set_title(f"Matriz de confusión (prueba, umbral {threshold:.3f})")
     fig.tight_layout()
     fig.savefig(path, dpi=120)
@@ -258,24 +251,29 @@ def plot_importance(names: list[str], values: np.ndarray, xlabel: str, path: Pat
 # -----------------------------------------------------------------------------
 # Modelos
 # -----------------------------------------------------------------------------
-def build_estimator(name: str):
-    """Estimadores candidatos con hiperparámetros fijos y semilla de config."""
+def build_estimator(name: str, overrides: dict | None = None):
+    """Construye el estimador con los valores por defecto o los recibidos."""
+    overrides = overrides or {}
+
     if name == "logreg":
         return make_pipeline(
             SimpleImputer(strategy="median"),
             StandardScaler(),
-            LogisticRegression(class_weight="balanced", C=1.0, max_iter=1000),
+            LogisticRegression(class_weight="balanced", C=overrides.get("C", cfg.P2_LOGREG_C),
+                max_iter=overrides.get("max_iter", cfg.P2_LOGREG_MAX_ITER), random_state=RANDOM_SEED,),
         )
+
     if name == "hgb":
         return HistGradientBoostingClassifier(
-            learning_rate=0.1,
-            max_iter=300,
-            max_leaf_nodes=63,
-            min_samples_leaf=200,
-            l2_regularization=1.0,
+            learning_rate=overrides.get("learning_rate", cfg.P2_HGB_LEARNING_RATE),
+            max_iter=overrides.get("max_iter", cfg.P2_HGB_MAX_ITER),
+            max_leaf_nodes=overrides.get("max_leaf_nodes", cfg.P2_HGB_MAX_LEAF_NODES),
+            min_samples_leaf=overrides.get("min_samples_leaf", cfg.P2_HGB_MIN_SAMPLES_LEAF),
+            l2_regularization=overrides.get("l2_regularization", cfg.P2_HGB_L2_REGULARIZATION),
             early_stopping=False,
             random_state=RANDOM_SEED,
         )
+
     raise ValueError(f"Modelo desconocido: {name}")
 
 
@@ -300,7 +298,9 @@ def estimator_params(name: str, estimator) -> dict:
     return {key: getattr(estimator, key) for key in keys}
 
 
-def run_model(name: str, splits: dict, common_params: dict, max_train_rows: int | None) -> dict:
+def run_model(name: str, splits: dict, common_params: dict, max_train_rows: int | None, 
+              estimator_overrides: dict | None = None, nested: bool = False, 
+              stage_of_work: str | None = None) -> dict:
     """Entrena (si aplica), evalúa y registra un modelo como run de MLflow."""
     info = MODEL_INFO[name]
     X = {part: splits[part][P2_FEATURE_COLUMNS] for part in splits}
@@ -313,7 +313,7 @@ def run_model(name: str, splits: dict, common_params: dict, max_train_rows: int 
         scores = {part: occupancy_rule_score(splits[part]) for part in splits}
         model_params = {"variable": "ocupacion_est_h"}
     else:
-        estimator = build_estimator(name)
+        estimator = build_estimator(name, estimator_overrides)
         train = splits["train"]
         if max_train_rows and len(train) > max_train_rows:
             train = train.sample(max_train_rows, random_state=RANDOM_SEED)
@@ -324,6 +324,7 @@ def run_model(name: str, splits: dict, common_params: dict, max_train_rows: int 
 
     threshold = choose_threshold(splits["valid"][TARGET].to_numpy(), scores["valid"])
     metrics = {"umbral_elegido_valid": threshold}
+    
     for part in ["train", "valid", "test"]:
         metrics.update(evaluate(splits[part], scores[part], threshold, part))
 
@@ -333,20 +334,58 @@ def run_model(name: str, splits: dict, common_params: dict, max_train_rows: int 
         "modelo": name,
         "umbral_criterio": "max F2 en validacion",
     }
-    # iniciar_run agrega fechas, particiones, semilla, data_version, manifiesto y las
-    # etiquetas equipo, pregunta, tipo_modelo y git_commit.
-    with iniciar_run(info["run_name"], pregunta="P2", tipo=info["tipo"], params=params) as run:
-        mlflow.set_tags(
-            {"tarea": "clasificacion", "modelo": name, "mlflow.note.content": info["descripcion"]}
-        )
+    
+    run_type = stage_of_work or info["tipo"]
+
+    with iniciar_run(info["run_name"], pregunta="P2", tipo=run_type, params=params, nested=nested) as run:
+        mlflow.set_tags({"tarea": "clasificacion", "modelo": name, "mlflow.note.content": info["descripcion"]})
         mlflow.log_metrics(metrics)
+        
+        mlflow.set_tags({
+            "question": "p2",
+            "model_family": "classification",
+            "stage_of_work": stage_of_work or (
+                "baseline" if info["tipo"] == "baseline" else "candidate"
+            ),
+            "model": name,
+        })
 
         with tempfile.TemporaryDirectory() as tmp:
+            config = {
+                "question": "p2",
+                "model": name,
+                "params": params,
+                "features": list(P2_FEATURE_COLUMNS),
+                "target": TARGET,
+                "random_seed": RANDOM_SEED,
+                "split_strategy": "temporal",
+                "train_rows": len(splits["train"]),
+                "validation_rows": len(splits["valid"]),
+                "test_rows": len(splits["test"]),
+            }
+
             tmp = Path(tmp)
-            plot_pr_curves(scores, splits, info["run_name"], tmp / "curva_precision_recall.png")
-            plot_confusion(
-                splits["test"], scores["test"], threshold, tmp / "matriz_confusion_test.png"
+            config_path = tmp / "run_config.json"
+            config_path.write_text(
+                json.dumps(config, indent=2, ensure_ascii=False),
+                encoding="utf-8",
             )
+
+            mlflow.log_artifact(
+                str(config_path),
+                artifact_path="config",
+            )
+
+            # El manifiesto en data/ identifica la versión completa; aquí solo
+            # publicamos el esquema y una muestra de entrenamiento sin PII.
+            train_for_log = splits["train"][list(P2_FEATURE_COLUMNS) + [TARGET]].head(1000)
+            mlflow.log_input(
+                mlflow.data.from_pandas(train_for_log.reset_index(drop=True),
+                                       name="mibici-p2-training-sample"),
+                context="training",
+            )
+            plot_pr_curves(scores, splits, info["run_name"], tmp / "curva_precision_recall.png")
+            plot_confusion(splits["test"], scores["test"], threshold, tmp / "matriz_confusion_test.png")
             plot_calibration(splits["test"], scores["test"], tmp / "calibracion_test.png")
             plot_topk_by_hour(splits["test"], scores["test"], tmp / "precision_topk_por_hora.png")
 
@@ -378,18 +417,14 @@ def run_model(name: str, splits: dict, common_params: dict, max_train_rows: int 
                 )
 
             (tmp / "metricas.json").write_text(json.dumps(metrics, indent=2))
-            mlflow.log_artifacts(tmp, artifact_path="evaluacion")
+            for plot in tmp.glob("*.png"):
+                mlflow.log_artifact(str(plot), artifact_path="plots")
+            mlflow.log_artifact(str(tmp / "metricas.json"), artifact_path="evaluation")
 
         if estimator is not None:
             example = X["valid"].head(5)
-            mlflow.sklearn.log_model(
-                estimator,
-                name="modelo",
-                signature=infer_signature(example, estimator.predict_proba(example)[:, 1]),
-                input_example=example,
-                # Tipos que el propio equipo serializa; skops pide declararlos como confiables.
-                skops_trusted_types=SKOPS_TRUSTED_TYPES,
-            )
+            # API de predicción del estimador: firma coherente con pyfunc.predict.
+            log_modelo_sklearn(estimator, example)
         logger.success("{}: AP test = {:.3f}", info["run_name"], metrics["test_average_precision"])
         return {"run_id": run.info.run_id, "run_name": info["run_name"], **metrics}
 
@@ -399,9 +434,7 @@ def plot_comparison(results: list[dict], path: Path) -> None:
     fig, ax = plt.subplots(figsize=(8, 4))
     width = 0.38
     x = np.arange(len(results))
-    ax.bar(
-        x - width / 2, [r["valid_average_precision"] for r in results], width, label="validación"
-    )
+    ax.bar(x - width / 2, [r["valid_average_precision"] for r in results], width, label="validación")
     ax.bar(x + width / 2, [r["test_average_precision"] for r in results], width, label="prueba")
     ax.axhline(results[0]["test_prevalencia"], ls="--", color="gray", label="azar (prevalencia)")
     ax.set_xticks(x, names, rotation=15, ha="right")
@@ -423,7 +456,10 @@ def main(
     max_train_rows: Annotated[
         int, typer.Option(help="Muestra de entrenamiento para candidatos; 0 = todo.")
     ] = MAX_FILAS_ENTRENAMIENTO,
-):
+    overrides_json: str = "{}",
+    nested: bool = False,
+    stage_of_work: str | None = None,
+    ):
     """Construye (si hace falta) la tabla de P2, entrena los modelos y los registra en MLflow."""
     np.random.seed(RANDOM_SEED)
     models = models or list(MODEL_INFO)
@@ -473,7 +509,19 @@ def main(
             }
         )
     configurar_experimento()
-    results = [run_model(name, splits, common_params, max_train_rows or None) for name in models]
+    
+    results = [
+    run_model(
+            name,
+            splits,
+            common_params,
+            max_train_rows or None,
+            estimator_overrides=json.loads(overrides_json),
+            nested=nested,
+            stage_of_work=stage_of_work,
+        )
+        for name in models
+    ]
 
     cfg.P2_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     table = pd.DataFrame(results).set_index("run_name")
@@ -491,7 +539,24 @@ def main(
     if len(results) > 1:
         plot_comparison(results, cfg.P2_FIGURES_DIR / "comparacion_modelos.png")
     logger.info("Resumen:\n{}", table[summary_cols].round(3).to_string())
+    return results
 
+
+def train_model(model="hgb", params=None, nested=False, stage_of_work=None, max_train_rows=None):
+    """Interfaz para ejecutar un modelo P2 desde MLflow Projects o una búsqueda.
+
+    `params` contiene overrides del estimador, por ejemplo {"max_iter": 400} o {"C": 0.5}.
+    """
+    params = params or {}
+    max_train_rows = (cfg.MAX_FILAS_ENTRENAMIENTO if max_train_rows is None else max_train_rows)
+    return main(
+        models=[model],
+        overrides_json=json.dumps(params),
+        max_train_rows=max_train_rows,
+        nested=nested,
+        stage_of_work=stage_of_work,
+    )
+    
 
 if __name__ == "__main__":
     app()

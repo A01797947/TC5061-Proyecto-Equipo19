@@ -153,6 +153,35 @@ FEATURES_PATH = PROCESSED_DATA_DIR / "p2_features.parquet"
 P2_MODELS_DIR = MODELS_DIR / "p2"
 P2_FIGURES_DIR = FIGURES_DIR / "p2"
 
+
+# ---------------------------------------------------------------------------
+# Valores por defecto para entrenamiento
+# ---------------------------------------------------------------------------
+
+# P1: demanda diaria por estación
+P1_DEFAULT_MODEL = "linear"
+P1_RIDGE_ALPHA = 1.0
+P1_RIDGE_SEARCH_ALPHAS = [0.1, 1.0, 10.0]
+P1_RF_N_ESTIMATORS = 150
+P1_RF_MAX_DEPTH = 18
+
+# P2: clasificación del riesgo
+P2_DEFAULT_MODEL = "hgb"
+P2_LOGREG_C = 1.0
+P2_LOGREG_MAX_ITER = 1000
+P2_HGB_LEARNING_RATE = 0.1
+P2_HGB_MAX_ITER = 300
+P2_HGB_MAX_LEAF_NODES = 63
+P2_HGB_MIN_SAMPLES_LEAF = 200
+P2_HGB_L2_REGULARIZATION = 1.0
+
+# P3: clustering de estaciones
+P3_DEFAULT_MODEL = "kmeans"
+P3_N_CLUSTERS = 3
+P3_N_INIT = 10
+P3_MAX_ITER = 300
+
+
 # If tqdm is installed, configure loguru with tqdm.write
 # https://github.com/Delgan/loguru/issues/135
 try:

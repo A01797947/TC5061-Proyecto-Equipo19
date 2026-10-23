@@ -1,23 +1,15 @@
-"""Utilidades comunes para registrar runs en MLflow Tracking.
+"""Contexto reproducible para todas las corridas de MiBici.
 
-Centralizan lo que todo run del experimento debe llevar para ser reproducible:
-rango de fechas y particiones, semilla, versión de datos del manifiesto y las
-etiquetas de equipo, pregunta y commit de Git.
-
-Ejemplo:
-
-    from tc5061_proyecto_equipo19.modeling.mlflow_utils import configurar_experimento, iniciar_run
-
-    configurar_experimento()
-    with iniciar_run("P2-baseline-regla-historica", pregunta="P2", tipo="baseline",
-                     params={"modelo": "regla"}):
-        mlflow.log_metric("val_average_precision", 0.42)
+Las corridas de modelos se crean en el experimento del equipo. Cuando se inicia
+con MLflow Projects se conserva el identificador del run del Project como tag;
+la corrida de entrenamiento se registra separadamente para garantizar que quede
+en el experimento del equipo incluso sin --experiment-name.
 """
-
 from __future__ import annotations
 
 from contextlib import contextmanager
 import math
+import os
 from pathlib import Path
 import subprocess
 
@@ -25,59 +17,52 @@ from loguru import logger
 import mlflow
 import mlflow.sklearn
 
-from tc5061_proyecto_equipo19.config import (
-    EQUIPO,
-    FECHA_FIN,
-    FECHA_INICIO,
-    FIN_ENTRENAMIENTO,
-    FIN_VALIDACION,
-    INICIO_PRUEBA,
-    INICIO_VALIDACION,
-    MANIFEST_PATH,
-    MLFLOW_ARTIFACT_LOCATION,
-    MLFLOW_EXPERIMENT_NAME,
-    MLFLOW_TRACKING_URI,
-    PROJ_ROOT,
-    RANDOM_SEED,
-)
+from tc5061_proyecto_equipo19 import config as cfg
 from tc5061_proyecto_equipo19.dataset import leer_manifiesto
 
 
 def _git(*args: str) -> str:
     try:
-        return subprocess.check_output(["git", *args], cwd=PROJ_ROOT, text=True).strip()
-    except subprocess.CalledProcessError, FileNotFoundError:
+        return subprocess.check_output(
+            ["git", *args], cwd=cfg.PROJ_ROOT, text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return "desconocido"
 
 
 def configurar_experimento() -> None:
-    """Apunta MLflow al tracking URI de config y activa el experimento del equipo."""
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-    if mlflow.get_experiment_by_name(MLFLOW_EXPERIMENT_NAME) is None:
+    mlflow.set_tracking_uri(cfg.MLFLOW_TRACKING_URI)
+    existing = mlflow.get_experiment_by_name(cfg.MLFLOW_EXPERIMENT_NAME)
+    if existing is None:
         mlflow.create_experiment(
-            MLFLOW_EXPERIMENT_NAME, artifact_location=MLFLOW_ARTIFACT_LOCATION
+            cfg.MLFLOW_EXPERIMENT_NAME,
+            artifact_location=cfg.MLFLOW_ARTIFACT_LOCATION,
         )
-    mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+    mlflow.set_experiment(cfg.MLFLOW_EXPERIMENT_NAME)
 
 
 def contexto_comun() -> tuple[dict, dict]:
-    """Parámetros y etiquetas que comparten todos los runs del experimento."""
+    if not cfg.MANIFEST_PATH.is_file():
+        raise FileNotFoundError(
+            f"Falta {cfg.MANIFEST_PATH}. Ejecuta primero: mlflow run . -e ingest --env-manager local"
+        )
     manifest = leer_manifiesto()
     params = {
-        "fecha_inicio": FECHA_INICIO,
-        "fecha_fin": FECHA_FIN,
-        "fin_entrenamiento": FIN_ENTRENAMIENTO,
-        "inicio_validacion": INICIO_VALIDACION,
-        "fin_validacion": FIN_VALIDACION,
-        "inicio_prueba": INICIO_PRUEBA,
+        "fecha_inicio": cfg.FECHA_INICIO,
+        "fecha_fin": cfg.FECHA_FIN,
+        "fin_entrenamiento": cfg.FIN_ENTRENAMIENTO,
+        "inicio_validacion": cfg.INICIO_VALIDACION,
+        "fin_validacion": cfg.FIN_VALIDACION,
+        "inicio_prueba": cfg.INICIO_PRUEBA,
         "data_version": manifest["data_version"],
         "data_schema_version": manifest["schema_version"],
         "meses": len(manifest["trips"]),
         "viajes_manifiesto": sum(t["records"] for t in manifest["trips"]),
-        "random_seed": RANDOM_SEED,
+        "random_seed": cfg.RANDOM_SEED,
     }
     tags = {
-        "equipo": EQUIPO,
+        "equipo": cfg.EQUIPO,
         "git_commit": _git("rev-parse", "HEAD"),
         "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
         "git_dirty": str(bool(_git("status", "--porcelain", "--untracked-files=no"))),
@@ -87,53 +72,80 @@ def contexto_comun() -> tuple[dict, dict]:
 
 
 @contextmanager
-def iniciar_run(nombre: str, pregunta: str, tipo: str, params: dict | None = None):
-    """Abre un run con los parámetros y etiquetas comunes más los propios del modelo.
+def _new_mlflow_run(name: str, *, nested: bool = False):
+    """Evita que MLFLOW_RUN_ID del Project reabra el run equivocado.
 
-    También adjunta el manifiesto de datos como artefacto, para que cada resultado
-    quede ligado a los archivos exactos con que se obtuvo.
+    Cuando nested=True debe existir una corrida padre activa. En ese caso no
+    eliminamos el contexto del padre, únicamente la variable heredada del
+    proceso de MLflow Project durante la apertura de la corrida hija.
     """
+    if nested and mlflow.active_run() is None:
+        raise RuntimeError("nested=True requiere una corrida padre activa")
+    project_id = os.environ.pop("MLFLOW_RUN_ID", None)
+    try:
+        with mlflow.start_run(run_name=name, nested=nested) as run:
+            if project_id:
+                mlflow.set_tag("mlflow_project_run_id", project_id)
+            yield run
+    finally:
+        if project_id is not None:
+            os.environ["MLFLOW_RUN_ID"] = project_id
+
+
+@contextmanager
+def iniciar_run(
+    nombre: str, pregunta: str, tipo: str, params: dict | None = None,
+    nested: bool = False,
+):
     comunes, tags = contexto_comun()
-    with mlflow.start_run(run_name=nombre) as run:
-        mlflow.set_tags({**tags, "pregunta": pregunta, "tipo_modelo": tipo})
+    configurar_experimento()
+    with _new_mlflow_run(nombre, nested=nested) as run:
+        mlflow.set_tags({
+            **tags,
+            "pregunta": pregunta,
+            "tipo_modelo": tipo,
+            "question": pregunta.lower(),
+            "stage_of_work": tipo,
+        })
         mlflow.log_params({**comunes, **(params or {})})
-        mlflow.log_artifact(str(MANIFEST_PATH), artifact_path="datos")
-        logger.info(f"Run {nombre} ({run.info.run_id})")
+        mlflow.log_artifact(str(cfg.MANIFEST_PATH), artifact_path="data")
+        logger.info("Corrida {} ({})", nombre, run.info.run_id)
         yield run
 
 
-def registrar_run(
-        nonmbre:str,
-        pregunta: str,
-        tipo: str,
-        params: dict | None = None,
-        metricas: dict | None = None,
-        artefactos: list[Path] | None = None,
-        modelo= None,
-) -> str:
-
-    """Registra un modelo entrenado como un run completo del experimento
+def log_modelo_sklearn(modelo, ejemplo):
+    """Guarda modelo con firma y ejemplo y persiste el URI de MLflow 3."""
+    from mlflow.models import infer_signature
+    prediction = modelo.predict(ejemplo)
+    info = mlflow.sklearn.log_model(
+        sk_model=modelo,
+        name="modelo",
+        signature=infer_signature(ejemplo, prediction),
+        input_example=ejemplo,
+        # El modelo propio contiene el tipo NumPy reportado por skops.
+        # Se autoriza específicamente este tipo, sin desactivar skops.
+        serialization_format="skops",
+        skops_trusted_types=["numpy.dtype"],
+    )
     
-    Args:
-        nombre: Nombre del rum (Eg. 'P1-baseline-regresion-lineal')
-        pregunta: Pregunta de negocio 'P1', 'P2', 'P3'
-        tipo: 'baseline'
-        params: Parámetros propios del modelo
-        metricas: Métricas {nombre: valor}. se omiten las no númericas o no fínitas
-        artefactos: Rutas de archivos a adjuntar al run
-        modelo: Estimador o Pipelines de sckit-learn a guardar como artecfacto
-        
-    Return:
-        El 'run_id' del run creado"""
+    mlflow.set_tag("logged_model_uri", info.model_uri)
+    return info
 
-    with iniciar_run(nonmbre, pregunta= pregunta, tipo=tipo, params=params) as run :
-        for clave, valor in (metricas or {}).items():
-            if isinstance(valor, (int, float)) and math.isfinite(valor):
-                mlflow.log_metric(clave, valor)
 
-        for ruta in artefactos or []:
-            mlflow.log_artifacts(str(ruta))
-
+def registrar_run(nombre: str, pregunta: str, tipo: str, params=None,
+                  metricas=None, artefactos=None, modelo=None, input_example=None):
+    with iniciar_run(nombre, pregunta, tipo, params=params) as run:
+        for key, val in (metricas or {}).items():
+            if isinstance(val, (int, float)) and math.isfinite(val):
+                mlflow.log_metric(key, val)
+        for file in artefactos or []:
+            file = Path(file)
+            if file.is_file():
+                mlflow.log_artifact(str(file))
+            elif file.is_dir():
+                mlflow.log_artifacts(str(file))
         if modelo is not None:
-            mlflow.sklearn.log_model(modelo, name="modelo")
+            if input_example is None:
+                raise ValueError("Se requiere input_example para registrar firma del modelo")
+            log_modelo_sklearn(modelo, input_example)
         return run.info.run_id
