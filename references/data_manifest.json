@@ -1,0 +1,385 @@
+{
+  "schema_version": "1.1.0",
+  "data_version": "a8ebbf8d8375",
+  "generated_at_utc": "2026-10-22T02:32:28.531729+00:00",
+  "date_range": {
+    "start_month": "2024-01",
+    "end_month": "2025-12"
+  },
+  "months": 24,
+  "total_trips": 9177953,
+  "start_time_min": "2024-01-01 00:05:25",
+  "start_time_max": "2025-12-31 23:59:08",
+  "trips": [
+    {
+      "source_file": "datos_abiertos_2024_01.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "01d1c136609df006410a2f8d9b925f20991e28cfe0c882ed67bca63b46b6d1a5",
+      "output_file": "trips_2024_01.parquet",
+      "output_sha256": "d5316ef863243b0c66c6fb154938c79f0b72e204d3842210c7dbb0bc0e5517d6",
+      "records": 391591,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 391591
+      },
+      "start_time_min": "2024-01-01 00:05:25",
+      "start_time_max": "2024-01-31 23:59:33"
+    },
+    {
+      "source_file": "datos_abiertos_2024_02.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "78254eb6b99b9b9fb46cc5bb58fd54bc9fed681d9c224143b99cf693deec8430",
+      "output_file": "trips_2024_02.parquet",
+      "output_sha256": "4e00e1910929110abca055c04e891db9d10ac36abc079f08c6ae762d14ff50d6",
+      "records": 383732,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 383732
+      },
+      "start_time_min": "2024-02-01 00:01:46",
+      "start_time_max": "2024-02-29 23:59:26"
+    },
+    {
+      "source_file": "datos_abiertos_2024_03.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "6c45a6ec1f136c58bfcb6fdd385c4e1ac2f4b887d0413dbf6e8b5c70a91da0d5",
+      "output_file": "trips_2024_03.parquet",
+      "output_sha256": "264a88111b7c32aa255bec097694d2efb1d826a091f1cb9eb38987cce4f59336",
+      "records": 390513,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 390513
+      },
+      "start_time_min": "2024-03-01 00:00:22",
+      "start_time_max": "2024-03-31 23:59:38"
+    },
+    {
+      "source_file": "datos_abiertos_2024_04.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "d60f68ebc083b0cea29d6e7a0e18eba95c4582220a79717df96365bf7dd33a11",
+      "output_file": "trips_2024_04.parquet",
+      "output_sha256": "114b4589c75b17122a4545fea282afc2bed9dd05650050922d7d88fb15fc9a23",
+      "records": 405308,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 405308
+      },
+      "start_time_min": "2024-04-01 00:00:48",
+      "start_time_max": "2024-04-30 23:59:02"
+    },
+    {
+      "source_file": "datos_abiertos_2024_05.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "21288117db70fad4e475cc5fb6acab174a84c09749170c0976337076aacc1b9e",
+      "output_file": "trips_2024_05.parquet",
+      "output_sha256": "af24f111d7c9ee8a5e06188d750a649ac3158845cc2adf576fb1f0cd69bf30cf",
+      "records": 410806,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 410806
+      },
+      "start_time_min": "2024-05-01 00:01:35",
+      "start_time_max": "2024-05-31 23:59:53"
+    },
+    {
+      "source_file": "datos_abiertos_2024_06.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "cd073cecc62cd7a358b1a54f342ad78ca0fa6a94d039e97e1920ae3323cd91a5",
+      "output_file": "trips_2024_06.parquet",
+      "output_sha256": "0c539f7d032fcad72c66d7b77eb0dfc9935de73a7e450d17acc8b2c025f31d5e",
+      "records": 365000,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 365000
+      },
+      "start_time_min": "2024-06-01 00:00:17",
+      "start_time_max": "2024-06-30 23:59:48"
+    },
+    {
+      "source_file": "datos_abiertos_2024_07.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "0d6dab9e3c5d1ed6f43f5c3ce65aea9ea51cd151c62cd80d4e068668cb947748",
+      "output_file": "trips_2024_07.parquet",
+      "output_sha256": "28566dcfec000a4e054914d098be4773075c97126b8ff89db9f98efcbef76c9a",
+      "records": 364177,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 364177
+      },
+      "start_time_min": "2024-07-01 00:00:34",
+      "start_time_max": "2024-07-31 23:59:10"
+    },
+    {
+      "source_file": "datos_abiertos_2024_08.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "4d6bd19355c8e8a0829b280ce8844bd2c1b82e5e3ffcfca3eee07e10d2efe796",
+      "output_file": "trips_2024_08.parquet",
+      "output_sha256": "8ca9106e5f9a9519346d45a9f018a539deda998b34477a83fae9c6e576561e2e",
+      "records": 394894,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 394894
+      },
+      "start_time_min": "2024-08-01 00:00:09",
+      "start_time_max": "2024-08-31 23:59:16"
+    },
+    {
+      "source_file": "datos_abiertos_2024_09.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "d4f7653879861abb67ffda890dd79d0cc8b71edbb043162f19bb0125eaf60fd3",
+      "output_file": "trips_2024_09.parquet",
+      "output_sha256": "ff18baf49579255f5fb1d027f063d5eae9bd0ee528474e03e4ff2db961979344",
+      "records": 390072,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%d/%m/%Y %H:%M": 390072
+      },
+      "start_time_min": "2024-09-01 00:00:00",
+      "start_time_max": "2024-09-30 23:59:00"
+    },
+    {
+      "source_file": "datos_abiertos_2024_10.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "9146623af19ea413a817a5077048b605ac5f4cd1bbe65f0d161ae39d2a9258c7",
+      "output_file": "trips_2024_10.parquet",
+      "output_sha256": "1485f0d35533c0dcc7dda342dc93b505cedfa04971a58d38fb71ba24df5cdf96",
+      "records": 418690,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%d/%m/%Y %H:%M": 418690
+      },
+      "start_time_min": "2024-10-01 00:00:00",
+      "start_time_max": "2024-10-31 23:59:00"
+    },
+    {
+      "source_file": "datos_abiertos_2024_11.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "85607feef22f75f1a1893ec5dbd3f8cfc1d01a2ef1c206418629ef672b2582ac",
+      "output_file": "trips_2024_11.parquet",
+      "output_sha256": "b516e3a12a7dfe93706b5e3d9c8b3cb19947fa1b772d7ff6b07f125107be0abb",
+      "records": 391089,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 391089
+      },
+      "start_time_min": "2024-11-01 00:00:04",
+      "start_time_max": "2024-11-30 23:59:01"
+    },
+    {
+      "source_file": "datos_abiertos_2024_12.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "4541d595fb6c539007b9309d128036356c128f2f523fe8b009050e3bf633c7d0",
+      "output_file": "trips_2024_12.parquet",
+      "output_sha256": "e2d39a004cbd715df26d5b7d02565dd750018679aa69c2be81855c4e7db5a013",
+      "records": 340049,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 340049
+      },
+      "start_time_min": "2024-12-01 00:00:17",
+      "start_time_max": "2024-12-31 23:55:17"
+    },
+    {
+      "source_file": "datos_abiertos_2025_01.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "90ee75701a69374926af0400d204f3280baed0e3c1a1f97d9e6c0b283757125a",
+      "output_file": "trips_2025_01.parquet",
+      "output_sha256": "d7bf7468e8b8438894e66f6224eb1cfe7f23de9ec072aadc1477b7d203d8ecde",
+      "records": 380184,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 380184
+      },
+      "start_time_min": "2025-01-01 00:00:44",
+      "start_time_max": "2025-01-31 23:59:13"
+    },
+    {
+      "source_file": "datos_abiertos_2025_02.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "f52f13f59eb2f1517e05c72f0a3d3d70c5b0fa6b86626c7325e8ca3b15ff74f8",
+      "output_file": "trips_2025_02.parquet",
+      "output_sha256": "4d176a9999fc3545b45cd8dc72ea13b12bb327f9b3945e2f090bacaf027ebb5b",
+      "records": 372529,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 372529
+      },
+      "start_time_min": "2025-02-01 00:00:57",
+      "start_time_max": "2025-02-28 23:59:58"
+    },
+    {
+      "source_file": "datos_abiertos_2025_03.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "e5aa1b5d197f294022d3f0ff1b55bf553fcbdb697b50d43deaddf8dca36fed64",
+      "output_file": "trips_2025_03.parquet",
+      "output_sha256": "67c685ce739e819668842b537d16c539770402fbe8319e28b0c13d916928cd70",
+      "records": 405110,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 405110
+      },
+      "start_time_min": "2025-03-01 00:00:34",
+      "start_time_max": "2025-03-31 23:58:09"
+    },
+    {
+      "source_file": "datos_abiertos_2025_04.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "630e637d6611aadc67aad321edcd541361220473bddf8e34ecba46c0e29d7341",
+      "output_file": "trips_2025_04.parquet",
+      "output_sha256": "7f2337d454955ff06430c6be90ef56dcacf4e95c68b560110862c42b9336ab8f",
+      "records": 366193,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 366193
+      },
+      "start_time_min": "2025-04-01 00:00:24",
+      "start_time_max": "2025-04-30 23:59:35"
+    },
+    {
+      "source_file": "datos_abiertos_2025_05.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "e0a744412a1e840c1d24c24269565a123b35739c0bac494b9c0f53ba0a2c43c2",
+      "output_file": "trips_2025_05.parquet",
+      "output_sha256": "f66876f9d3a7b19d40a115fb64b2b6fa1fc71ea7e151edf1e8887317e925f243",
+      "records": 395891,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 395891
+      },
+      "start_time_min": "2025-05-01 00:00:28",
+      "start_time_max": "2025-05-31 23:59:48"
+    },
+    {
+      "source_file": "datos_abiertos_2025_06.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "063e3523db00c90899f08fb134c4c382667eb0e4d8b6358890d426409c6f4c9e",
+      "output_file": "trips_2025_06.parquet",
+      "output_sha256": "f8ea41b8d713f8b0891a74ccdef3ca3f8d245617cd20e25a4448ac6d0feef5e2",
+      "records": 356611,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 356611
+      },
+      "start_time_min": "2025-06-01 00:00:06",
+      "start_time_max": "2025-06-30 23:59:43"
+    },
+    {
+      "source_file": "datos_abiertos_2025_07.csv",
+      "source_encoding": "cp1252",
+      "source_sha256": "a71a9e2a629ff91b021f57e302958e64fa545678d6373aaf0fed62dfc7bebd29",
+      "output_file": "trips_2025_07.parquet",
+      "output_sha256": "c58b5cc4e3a92977aa96a153dc58ad9d358ad142aa346e56d2c6932f1a5b3862",
+      "records": 368186,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 368186
+      },
+      "start_time_min": "2025-07-01 00:00:08",
+      "start_time_max": "2025-07-31 23:59:46"
+    },
+    {
+      "source_file": "datos_abiertos_2025_08.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "382e62f3eb878e13faf4c93d031c8efcf765c392b3402d27b264613f9ff4a56d",
+      "output_file": "trips_2025_08.parquet",
+      "output_sha256": "9c2c49edab6fb8ea6f35c591c38035af3821b2c0ed3b7bce759aa6878aa9bc81",
+      "records": 374727,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 374727
+      },
+      "start_time_min": "2025-08-01 00:00:05",
+      "start_time_max": "2025-08-31 23:55:27"
+    },
+    {
+      "source_file": "datos_abiertos_2025_09.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "218bed1587a70ec5fc5e8589a04783532301f19c55acd3633fa219c96860e720",
+      "output_file": "trips_2025_09.parquet",
+      "output_sha256": "162152b3da90098067562b3723fb284e97c6a927e9e1a5d914b7ad97d69a0b99",
+      "records": 376789,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 376789
+      },
+      "start_time_min": "2025-09-01 00:01:09",
+      "start_time_max": "2025-09-30 23:59:53"
+    },
+    {
+      "source_file": "datos_abiertos_2025_10.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "505d9b8b59f65fa223f7889189b74b9fe167c9dda11c7e7053536a360c611370",
+      "output_file": "trips_2025_10.parquet",
+      "output_sha256": "170282e5ddc8d33317083a6e9d279e91c1d811194ba9cfb88978022f46c899d7",
+      "records": 420064,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 420064
+      },
+      "start_time_min": "2025-10-01 00:00:26",
+      "start_time_max": "2025-10-31 23:59:57"
+    },
+    {
+      "source_file": "datos_abiertos_2025_11.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "f5c4f1b0c0842339dfdfaac756607314bdf5b64d17cde58d754f5a5a2e1a5fbe",
+      "output_file": "trips_2025_11.parquet",
+      "output_sha256": "6c14c473e91ae2dfe4e642434d2858dbef7bdb198e54fed6c5e1143e7cc69ae3",
+      "records": 380328,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 380328
+      },
+      "start_time_min": "2025-11-01 00:00:07",
+      "start_time_max": "2025-11-30 23:59:53"
+    },
+    {
+      "source_file": "datos_abiertos_2025_12.csv",
+      "source_encoding": "utf-8-sig",
+      "source_sha256": "b9fbb7386666ac3d452e3d3ef40ab443c39eef349cd9c97207230371e1d2d001",
+      "output_file": "trips_2025_12.parquet",
+      "output_sha256": "4d3fa20417a852c70d07a571dd412f7b92c23c7d68513d07501fa5db4dc786c8",
+      "records": 335420,
+      "invalid_date_rows": 0,
+      "rows_with_duplicate_trip_ids": 0,
+      "date_formats": {
+        "%Y-%m-%d %H:%M:%S": 335420
+      },
+      "start_time_min": "2025-12-01 00:01:03",
+      "start_time_max": "2025-12-31 23:59:08"
+    }
+  ],
+  "stations": {
+    "source_file": "nomenclatura_2026_09.csv",
+    "source_encoding": "utf-8-sig",
+    "source_sha256": "206e45fe633922b634d858142fa21e6fd9f4c421b6435c02980ef290cc2df90d",
+    "output_file": "stations.parquet",
+    "output_sha256": "3fbcf5f270777e27492372750d9355c7567350d4775b4da13a38ff1120f7393c",
+    "records": 484,
+    "duplicate_station_ids": 0,
+    "missing_coordinates": 0
+  }
+}

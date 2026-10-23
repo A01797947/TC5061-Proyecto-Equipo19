@@ -1,0 +1,30 @@
+name: TC5061-Proyecto-Equipo19
+python_env: python_env.yaml
+
+entry_points:
+  ingest:
+    command: "python -m tc5061_proyecto_equipo19.dataset"
+
+  train:
+    parameters:
+      question: {type: str, default: "p1"}
+      model: {type: str, default: "default"}
+      alpha: {type: float, default: -1.0}
+      C: {type: float, default: -1.0}
+      learning_rate: {type: float, default: -1.0}
+      n_estimators: {type: int, default: -1}
+      max_depth: {type: int, default: -1}
+      max_leaf_nodes: {type: int, default: -1}
+      min_samples_leaf: {type: int, default: -1}
+      max_train_rows: {type: int, default: -1}
+      n_clusters: {type: int, default: -1}
+      n_init: {type: int, default: -1}
+      max_iter: {type: int, default: -1}
+      random_state: {type: int, default: -1}
+      model_type: {type: str, default: "candidate"}
+    command: "python -m tc5061_proyecto_equipo19.project_runner train --question {question} --model {model} --alpha {alpha} --C {C} --learning-rate {learning_rate} --n-estimators {n_estimators} --max-depth {max_depth} --max-leaf-nodes {max_leaf_nodes} --min-samples-leaf {min_samples_leaf} --max-train-rows {max_train_rows} --n-clusters {n_clusters} --n-init {n_init} --max-iter {max_iter} --random-state {random_state} --model-type {model_type}"
+
+  search:
+    parameters:
+      question: {type: str, default: "p1"}
+    command: "python -m tc5061_proyecto_equipo19.project_runner search --question {question}"

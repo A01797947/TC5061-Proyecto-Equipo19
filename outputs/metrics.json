@@ -1,0 +1,8 @@
+{
+  "silhouette": 0.5505071586947899,
+  "davies_bouldin": 0.7515309434270235,
+  "calinski_harabasz": 415.74448415745735,
+  "inertia": 5747.187833012167,
+  "n_stations": 470,
+  "n_features": 34
+}
