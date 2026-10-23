@@ -26,78 +26,10 @@ from tc5061_proyecto_equipo19.modeling.artifacts import log_run_config
 
 
 def load_data(file_path: Path | None = None) -> pd.DataFrame:
-    """
-    Carga los viajes de MiBici desde los Parquet procesados.
-
-    Si se proporciona file_path, lee ese archivo individual.
-    Si no se proporciona, concatena los archivos mensuales
-    definidos en cfg.MESES dentro de data/processed.
-    """
-    if file_path is not None:
-        file_path = Path(file_path)
-
-        if not file_path.exists():
-            raise FileNotFoundError(f"No existe el archivo de P1: {file_path}")
-
-        df = pd.read_parquet(file_path, columns=["start_time", "origin_station_id"])
-
-    else:
-        data_dir = cfg.PROCESSED_DATA_DIR
-        monthly_files = [data_dir / f"trips_{month}.parquet" for month in cfg.MESES]
-
-        missing_files = [path for path in monthly_files if not path.exists()]
-
-        if missing_files:
-            missing_list = "\n".join(str(path) for path in missing_files)
-            raise FileNotFoundError(
-                "Faltan archivos mensuales de viajes para P1:\n"
-                f"{missing_list}"
-            )
-
-        dataframes = [pd.read_parquet(path, columns=["start_time", "origin_station_id"]) for path in monthly_files]
-
-        df = pd.concat(dataframes, ignore_index=True)
-
-    # Comprobar las columnas necesarias.
-    required_columns = {
-        "start_time",
-        "origin_station_id",
-    }
-
-    missing_columns = required_columns - set(df.columns)
-
-    if missing_columns:
-        raise ValueError(
-            "Los datos no contienen las columnas necesarias "
-            f"para P1: {sorted(missing_columns)}. "
-            f"Columnas disponibles: {list(df.columns)}"
-        )
-
-    # Convertir la fecha de inicio a datetime.
-    df["start_time"] = pd.to_datetime(df["start_time"], errors="coerce")
-
-    # Eliminar viajes sin fecha o estación de origen.
-    df = df.dropna(subset=["start_time", "origin_station_id"]).copy()
-
-    # Crear las variables temporales que necesita P1.
-    df["Año"] = df["start_time"].dt.year
-    df["Mes"] = df["start_time"].dt.month
-    df["Dia"] = df["start_time"].dt.day
-
-    # Lunes = 0, domingo = 6.
-    df["Dia_semana"] = df["start_time"].dt.dayofweek
-
-    if df.empty:
-        raise ValueError("No hay viajes válidos para entrenar P1.")
-
-    print(f"Filas de viajes cargadas: {len(df):,}")
-    print(
-        "Periodo de datos: "
-        f"{df['start_time'].min()} a "
-        f"{df['start_time'].max()}"
-    )
-
-    return df
+    """Carga el dataset interim que ya contiene las variables temporales."""
+    ruta = file_path if file_path else cfg.INTERIM_DATA_DIR / 'viajes_limpios_enriquecidos.parquet'
+    print(f"Cargando datos desde: {ruta}")
+    return pd.read_parquet(ruta)
 
 
 def build_pipeline(model) -> Pipeline:
