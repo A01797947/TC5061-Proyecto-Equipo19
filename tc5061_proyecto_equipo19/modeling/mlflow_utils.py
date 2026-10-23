@@ -122,7 +122,7 @@ def log_modelo_sklearn(modelo, ejemplo):
         name="modelo",
         signature=infer_signature(ejemplo, prediction),
         input_example=ejemplo,
-        # El modelo propio contiene el tipo NumPy reportado por skops.
+        # El modelo propio contiene el tipo NumPy reportado por skops
         # Se autoriza específicamente este tipo, sin desactivar skops.
         serialization_format="skops",
         skops_trusted_types=["numpy.dtype", "sklearn.tree._tree.Tree"],
