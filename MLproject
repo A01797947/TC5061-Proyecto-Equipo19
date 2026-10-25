@@ -22,7 +22,9 @@ entry_points:
       max_iter: {type: int, default: -1}
       random_state: {type: int, default: -1}
       model_type: {type: str, default: "candidate"}
-    command: "python -m tc5061_proyecto_equipo19.project_runner train --question {question} --model {model} --alpha {alpha} --C {C} --learning-rate {learning_rate} --n-estimators {n_estimators} --max-depth {max_depth} --max-leaf-nodes {max_leaf_nodes} --min-samples-leaf {min_samples_leaf} --max-train-rows {max_train_rows} --n-clusters {n_clusters} --n-init {n_init} --max-iter {max_iter} --random-state {random_state} --model-type {model_type}"
+      n_components: {type: int, default: -1}
+      volume_weight: {type: float, default: -1.0}
+    command: "python -m tc5061_proyecto_equipo19.project_runner train --question {question} --model {model} --alpha {alpha} --C {C} --learning-rate {learning_rate} --n-estimators {n_estimators} --max-depth {max_depth} --max-leaf-nodes {max_leaf_nodes} --min-samples-leaf {min_samples_leaf} --max-train-rows {max_train_rows} --n-clusters {n_clusters} --n-init {n_init} --max-iter {max_iter} --random-state {random_state} --model-type {model_type} --n-components {n_components} --volume-weight {volume_weight}"
 
   search:
     parameters:

@@ -25,7 +25,9 @@ def parse_args():
     train.add_argument("--n-init", type=int, default=-1)
     train.add_argument("--max-iter", type=int, default=-1)
     train.add_argument("--random-state", type=int, default=-1)
-    train.add_argument("--model-type", choices=["baseline", "candidate"], default="candidate")
+    train.add_argument("--model-type", choices=["baseline", "candidate", "perfil", "hibrido"], default="candidate")
+    train.add_argument("--n-components", type=int, default=1)
+    train.add_argument("--volume-weight", type=float, default=1.0)
     return parser.parse_args()
 
 
@@ -74,6 +76,8 @@ def main():
             "max_iter": _default(args.max_iter, cfg.P3_MAX_ITER),
             "random_state": _default(args.random_state, cfg.RANDOM_SEED),
             "model_type": args.model_type,
+            "n_components": _default(args.n_components, cfg.P3_N_COMPONENTS),
+            "volume_weight": _default(args.volume_weight, cfg.P3_VOLUME_WEIGHT),
         })
 
 
