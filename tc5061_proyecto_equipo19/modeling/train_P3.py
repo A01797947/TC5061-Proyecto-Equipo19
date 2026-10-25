@@ -3,26 +3,38 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 import random
 import tempfile
-from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import mlflow
+from mlflow.models import infer_signature
 import mlflow.sklearn
 import numpy as np
 import pandas as pd
-from mlflow.models import infer_signature
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score, adjusted_rand_score
+from sklearn.compose import ColumnTransformer
+from sklearn.decomposition import PCA
+from sklearn.metrics import (
+    adjusted_rand_score,
+    calinski_harabasz_score,
+    davies_bouldin_score,
+    silhouette_score,
+)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from tc5061_proyecto_equipo19 import config as cfg
 from tc5061_proyecto_equipo19.features.p3 import construir_features_estaciones
-from tc5061_proyecto_equipo19.modeling.mlflow_utils import configurar_experimento, iniciar_run, log_modelo_sklearn
+from tc5061_proyecto_equipo19.modeling.mlflow_utils import (
+    configurar_experimento,
+    iniciar_run,
+    log_modelo_sklearn,
+)
 
 
 def _read_table(path: str | Path, columns=None) -> pd.DataFrame:
@@ -50,7 +62,7 @@ def load_processed_data() -> tuple[pd.DataFrame, pd.DataFrame]:
             f"Primeros archivos ausentes: {missing[:3]}"
         )
 
-    required = ["start_time", "origin_station_id", "destination_station_id"]
+    required = ["start_time", "end_time", "origin_station_id", "destination_station_id"]
     trips = pd.concat([_read_table(path, columns=required) for path in trip_paths], ignore_index=True)
     stations = _read_table(station_path)
     return trips, stations
@@ -58,7 +70,7 @@ def load_processed_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 def load_data(trips_path: str | Path, stations_path: str | Path):
     """Carga los archivos indicados por CLI; acepta CSV o Parquet."""
-    trips = _read_table(trips_path, ["start_time", "origin_station_id", "destination_station_id"])
+    trips = _read_table(trips_path, ["start_time", "end_time", "origin_station_id", "destination_station_id"])
     stations = _read_table(stations_path)
     return trips, stations
 
@@ -67,23 +79,47 @@ def get_feature_columns(features: pd.DataFrame, model_type: str) -> list[str]:
     basic = ["viajes_iniciados", "viajes_finalizados", "total_viajes"]
     if model_type == "baseline":
         return basic
+    if model_type == "perfil":
+        return [c for c in features.columns
+                if c.startswith("pct_")] + ["ratio_finde"]
+    if model_type == "hibrido" :
+        return [c for c in features.columns
+                        if c.startswith("pct_")] + ["ratio_finde", "log_viajes_dia"]
     return basic + [
         c for c in features.columns
-        if c.startswith("salidas_hora_") or c.startswith("salidas_dia_")
+        if c.startswith("salidas_hora_", "salidas_dia_")
     ]
 
+def build_pipeline (model_type, columns, n_clusters, n_init, max_iter, random_state,
+                    n_components = 5, volume_weight=2.0):
+    kmeans = KMeans(n_clusters=n_clusters, n_init=n_init, max_iter=max_iter,
+                    random_state=random_state, algorithm="lloyd")
+    if model_type != "hibrido":
+        return Pipeline([("scaler", StandardScaler()), ("kmeans", kmeans)])
+
+    volume_cols = ["log_viajes_dia"]
+    profile_cols = [c for c in columns if c not in volume_cols]
+    features = ColumnTransformer(
+        [
+            ("perfil", Pipeline([("scaler", StandardScaler()), 
+                                 ("pca", PCA(n_components=n_components, random_state=random_state))]), profile_cols),
+            ("volumen", StandardScaler(), volume_cols)
+        ],
+        transformer_weights={"perfil": 1.0, "volumen": volume_weight}
+    )
+    return Pipeline([("features", features), ("kmeans", kmeans)])
 
 def train_evaluate(features: pd.DataFrame, columns: list[str], n_clusters: int = 3, n_init: int = 10, max_iter: int = 300, 
-                   random_state: int = 42, output_dir: str | Path | None = None, model_type: str = "candidate",):
+                   random_state: int = 42, output_dir: str | Path | None = None, model_type: str = "candidate", 
+                   n_components: int = cfg.P3_N_COMPONENTS, volume_weight: float = cfg.P3_VOLUME_WEIGHT):
     """Entrena StandardScaler + KMeans y genera métricas/archivos de evaluación."""
     if n_clusters < 2 or len(features) <= n_clusters:
         raise ValueError("n_clusters debe ser >= 2 y menor que el número de estaciones.")
     X = features[columns].astype(float)
-    pipeline = Pipeline([
-        ("scaler", StandardScaler()),
-        ("kmeans", KMeans(n_clusters=n_clusters, n_init=n_init, max_iter=max_iter, random_state=random_state, algorithm="lloyd",)),])
+    pipeline = build_pipeline(model_type, columns, n_clusters, n_init, max_iter, random_state,
+                    n_components, volume_weight)
     labels = pipeline.fit_predict(X)
-    X_scaled = pipeline.named_steps["scaler"].transform(X)
+    X_scaled = pipeline[:-1].transform(X)
     unique_labels = np.unique(labels)
     
     if len(unique_labels) < 2 or len(unique_labels) >= len(features):
@@ -94,9 +130,9 @@ def train_evaluate(features: pd.DataFrame, columns: list[str], n_clusters: int =
         "davies_bouldin": float(davies_bouldin_score(X_scaled, labels)),
         "calinski_harabasz": float(calinski_harabasz_score(X_scaled, labels)),
         "inertia": float(pipeline.named_steps["kmeans"].inertia_),
-        "n_stations": int(len(features)),
-        "n_features": int(len(columns)),
-        "n_clusters_observed": int(len(unique_labels)),
+        "n_stations": len(features),
+        "n_features": len(columns),
+        "n_clusters_observed": len(unique_labels),
     }
 
     summary = None
@@ -106,6 +142,14 @@ def train_evaluate(features: pd.DataFrame, columns: list[str], n_clusters: int =
         outdir.mkdir(parents=True, exist_ok=True)
         assigned = features.copy()
         assigned["cluster"] = labels
+
+        cols_sal_manana = [f"pct_salidas_hora_{h:02d}" for h in range(6, 10)]
+        cols_sal_tarde = [f"pct_salidas_hora_{h:02d}" for h in range(16, 21)]
+        cols_lle_manana = [f"pct_llegadas_hora_{h:02d}" for h in range(6, 10)]
+        assigned["pct_salidas_manana"] = assigned[cols_sal_manana].sum(axis=1)
+        assigned["pct_salidas_tarde"] = assigned[cols_sal_tarde].sum(axis=1)
+        assigned["pct_llegadas_manana"] = assigned[cols_lle_manana].sum(axis=1)
+
         assigned.to_csv(outdir / "cluster_assignments.csv", index=False)
         (outdir / "metrics.json").write_text(json.dumps(metrics, indent=2, ensure_ascii=False), encoding="utf-8")
         summary = assigned.groupby("cluster").agg(
@@ -113,10 +157,15 @@ def train_evaluate(features: pd.DataFrame, columns: list[str], n_clusters: int =
             promedio_salidas=("viajes_iniciados", "mean"),
             promedio_llegadas=("viajes_finalizados", "mean"),
             promedio_total_viajes=("total_viajes", "mean"),
+            mediana_viajes_dia=("total_viajes", "median"),
+            pct_salidas_manana=("pct_salidas_manana", "mean"),
+            pct_salidas_tarde=("pct_salidas_tarde", "mean"),
+            pct_llegadas_manana=("pct_llegadas_manana", "mean"),
+            ratio_finde=("ratio_finde", "mean"),
             capacidad_promedio=("capacity", "mean"),
             latitud_media=("latitude", "mean"),
             longitud_media=("longitude", "mean"),
-        ).round(2)
+        ).round(3)
         summary.to_csv(outdir / "cluster_summary.csv")
 
         fig, ax = plt.subplots(figsize=(9, 6))
@@ -149,8 +198,9 @@ def _profile_by_period(trips: pd.DataFrame, stations: pd.DataFrame,
     features = construir_features_estaciones(selected, stations)
     days = (end_ts - start_ts).days + 1
     count_cols = ["viajes_iniciados", "viajes_finalizados", "total_viajes"]
-    count_cols += [col for col in features if col.startswith("salidas_hora_") or col.startswith("salidas_dia_")]
+    count_cols += [col for col in features if col.startswith(("salidas_hora_", "salidas_dia_"))]
     features[count_cols] = features[count_cols].astype(float) / days
+    features["log_viajes_dia"] = np.log1p(features["total_viajes"])
     return features
 
 
@@ -166,7 +216,7 @@ def _evaluate_period(pipeline, train_features, other_features, columns, period):
     X_future = common[columns].astype(float)
     labels_train = pipeline.predict(X_train)
     labels_future = pipeline.predict(X_future)
-    scaled_future = pipeline.named_steps["scaler"].transform(X_future)
+    scaled_future = pipeline[:-1].transform(X_future)
     result = {
         f"{period}_n_stations": len(common),
         f"{period}_ari_vs_train": float(adjusted_rand_score(labels_train, labels_future)),
@@ -186,9 +236,11 @@ def train_model(model: str = "kmeans", params: dict | None = None,
     n_init = int(params.get("n_init", cfg.P3_N_INIT))
     max_iter = int(params.get("max_iter", cfg.P3_MAX_ITER))
     random_state = int(params.get("random_state", cfg.RANDOM_SEED))
+    n_components = int(params.get("n_components", cfg.P3_N_COMPONENTS))
+    volume_weight = float(params.get("volume_weight", cfg.P3_VOLUME_WEIGHT))
     model_type = params.get("model_type", "candidate")
-    if model_type not in {"baseline", "candidate"}:
-        raise ValueError("model_type debe ser 'baseline' o 'candidate'.")
+    if model_type not in {"baseline", "candidate", "perfil", "hibrido"}:
+        raise ValueError("model_type debe ser 'baseline' o 'candidate' o 'perfil' o 'hibrido'.")
     random.seed(random_state)
     np.random.seed(random_state)
     trips, stations = load_processed_data()
@@ -199,6 +251,8 @@ def train_model(model: str = "kmeans", params: dict | None = None,
     columns = get_feature_columns(train_features, model_type)
     stage = stage_of_work or ("baseline" if model_type == "baseline" else "candidate")
     run_name = f"P3-{model_type}-kmeans-k{n_clusters}-init{n_init}-seed{random_state}"
+    if model_type == "hibrido":
+        run_name += f"-pc{n_components}-w{volume_weight:g}"
     run_params = {
         "model": model, "model_type": model_type, "n_clusters": n_clusters,
         "n_init": n_init, "max_iter": max_iter, "random_state": random_state,
@@ -210,11 +264,14 @@ def train_model(model: str = "kmeans", params: dict | None = None,
         "validation_end": cfg.FIN_VALIDACION,
         "test_start": cfg.INICIO_PRUEBA,
     }
+    if model_type == "hibrido":
+        run_params.update({"n_components": n_components, "volume_weight": volume_weight})
     with tempfile.TemporaryDirectory(prefix="mibici_p3_") as temp_dir:
         output_dir = Path(temp_dir)
         pipeline, metrics, summary = train_evaluate(
             train_features, columns, n_clusters, n_init, max_iter, random_state,
             output_dir=output_dir, model_type=model_type,
+            n_components=n_components, volume_weight=volume_weight
         )
         metrics.update(_evaluate_period(pipeline, train_features, valid_features, columns, "valid"))
         metrics.update(_evaluate_period(pipeline, train_features, test_features, columns, "test"))
@@ -260,7 +317,7 @@ def main():
     parser = argparse.ArgumentParser(description="Clustering de estaciones MiBici con MLflow")
     parser.add_argument("--trips-csv", help="CSV/Parquet de viajes; si se omite, usa data/processed")
     parser.add_argument("--stations-csv", help="CSV/Parquet de estaciones; si se omite, usa data/processed")
-    parser.add_argument("--model-type", choices=["baseline", "candidate"], default="candidate")
+    parser.add_argument("--model-type", choices=["baseline", "candidate", "perfil"], default="candidate")
     parser.add_argument("--n-clusters", type=int, default=cfg.P3_N_CLUSTERS)
     parser.add_argument("--n-init", type=int, default=cfg.P3_N_INIT)
     parser.add_argument("--max-iter", type=int, default=cfg.P3_MAX_ITER)
