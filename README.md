@@ -112,9 +112,40 @@ tienes exactamente los mismos datos que el resto del equipo.
 
 ## Experimento en MLflow
 
-Todos los runs van al experimento `mibici-equipo19`, guardado en `mlflow.db` (SQLite) con
-artefactos en `mlartifacts/`. Para usar un servidor de MLflow compartido, define
-`MLFLOW_TRACKING_URI` en un archivo `.env`.
+Todos los runs van al experimento `mibici-equipo19`. Hay dos modos:
+
+- **Local (por defecto):** `mlflow.db` (SQLite) y artefactos en `mlartifacts/`.
+- **Compartido (Supabase):** el servidor guarda corridas y Registry en Postgres y los
+  artefactos en Supabase Storage (compatible con S3), en el bucket `mlflow-artifacts`.
+  Copia `.env.example` como `.env`, llena los valores que te pase la persona dueña del
+  proyecto de Supabase y arranca el servidor como se indica abajo.
+
+`DATABASE_URL` debe empezar con `postgresql+psycopg://`. Las credenciales viven solo en
+`.env` (ignorado por Git) y nunca se comparten por el repositorio. El plan gratuito de
+Supabase pausa el proyecto tras una semana sin actividad; se reactiva desde el panel.
+
+**Servidor compartido, consola 1 (macOS o Linux):**
+
+```bash
+set -a; source .env; set +a
+mlflow server --backend-store-uri "$DATABASE_URL" --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 127.0.0.1 --port 5000
+```
+
+**Servidor compartido, consola 1 (Windows PowerShell):**
+
+``` powershell
+Get-Content .env | Where-Object { $_ -match '^\s*[A-Za-z_]+=' } | ForEach-Object {
+    $k, $v = $_ -split '=', 2
+    Set-Item -Path "Env:$($k.Trim())" -Value $v.Trim().Trim('"')
+}
+mlflow server --backend-store-uri $env:DATABASE_URL --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 127.0.0.1 --port 5000
+```
+
+**Consola 2:** carga también el `.env` (para `MLFLOW_ARTIFACT_LOCATION`) y define
+MLFLOW_TRACKING_URI=http://127.0.0.1:5000` antes de ejecutar `mlflow run`.
+
+> En macOS, el Receptor de AirPlay usa el puerto 5000 y puede devolver un 403 vacío en el
+> navegador. Apágalo en Ajustes del Sistema → General → AirDrop y Handoff.
 
 `tc5061_proyecto_equipo19/modeling/mlflow_utils.py` da a cada run lo que necesita para ser
 reproducible:
