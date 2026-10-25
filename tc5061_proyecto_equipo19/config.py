@@ -127,7 +127,9 @@ PARQUET_COMPRESSION = "snappy"
 EQUIPO = "equipo19"
 MLFLOW_EXPERIMENT_NAME = "mibici-equipo19"
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", f"sqlite:///{PROJ_ROOT / 'mlflow.db'}")
-MLFLOW_ARTIFACT_LOCATION = (PROJ_ROOT / "mlartifacts").as_uri()
+MLFLOW_ARTIFACT_LOCATION = os.getenv(
+    "MLFLOW_ARTIFACT_LOCATION", (PROJ_ROOT / "mlartifacts").as_uri()
+)
 
 
 # ----------------------------------------------------------------------------
