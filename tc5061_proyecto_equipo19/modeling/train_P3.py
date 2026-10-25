@@ -87,7 +87,7 @@ def get_feature_columns(features: pd.DataFrame, model_type: str) -> list[str]:
                         if c.startswith("pct_")] + ["ratio_finde", "log_viajes_dia"]
     return basic + [
         c for c in features.columns
-        if c.startswith("salidas_hora_", "salidas_dia_")
+        if c.startswith(("salidas_hora_", "salidas_dia_"))
     ]
 
 def build_pipeline (model_type, columns, n_clusters, n_init, max_iter, random_state,
