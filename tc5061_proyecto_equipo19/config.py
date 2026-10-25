@@ -182,6 +182,9 @@ P3_DEFAULT_MODEL = "kmeans"
 P3_N_CLUSTERS = 3
 P3_N_INIT = 10
 P3_MAX_ITER = 300
+P3_RATIO_FINDE_MAX = 1.5
+P3_N_COMPONENTS = 5
+P3_VOLUME_WEIGHT = 2.0
 
 
 # If tqdm is installed, configure loguru with tqdm.write
