@@ -382,8 +382,6 @@ VS Code (con la extensión GitLens) muestra los conflictos y permite elegir entr
 
 ---
 
-## Entrega MLOps: Partes A, B y C (MLflow Projects 3.x)
-
 ### A. Proyecto reproducible y ejecución desde un clon limpio
 
 **Entorno:** Python 3.14 y dependencias del archivo `requirements.txt` con versiones
