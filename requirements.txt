@@ -37,5 +37,8 @@ psycopg[binary]==3.3.6
 boto3==1.43.118
 
 
+# Testing
+pytest==9.2.0
+
 # Paquete del proyecto en modo editable
 -e .
