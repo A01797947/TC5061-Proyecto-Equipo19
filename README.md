@@ -547,3 +547,136 @@ La verificación carga los tres modelos desde
 Para inferencia de riesgo P2 ordenando estaciones, usar el flavor
 `mlflow.sklearn.load_model(uri).predict_proba(X)[:, 1]` además de los datos de
 entrada esperados; `pyfunc.predict` del clasificador devuelve clases 0/1.
+
+---
+
+## Calidad, reproducibilidad y seguridad
+
+La carpeta `tests/` contiene **pruebas PyTest** de P1, P2 y P3, además de ingesta, normalización de nombres,
+conversión de fechas, limpieza, límites de duración, variables temporales, demanda P1,
+particiones cronológicas, validación de esquema, búsqueda de secretos y reproducibilidad
+real de los pipelines P1 (`RandomForestRegressor`), P2 (`LogisticRegression`) y
+P3 (`KMeans`), todos con la semilla `RANDOM_SEED=42`.
+Estas pruebas usan **datos sintéticos**, no descargan CSV, no escriben en MLflow ni requieren
+PostgreSQL, S3 o credenciales. Los scripts reales de entrenamiento importan
+`modeling/p1_pipeline.py`, `modeling/p2_pipeline.py` y `modeling/p3_pipeline.py`,
+de forma que PyTest ejercita los estimadores compartidos con el entrenamiento.
+Se corrigió `features/base.py` para clasificar correctamente los timestamps con
+fracciones de segundo en los límites temporales.
+
+### 1. PyTest y seguridad — entorno habitual (`.venv`, Python 3.14)
+
+Desde PowerShell, dentro de la raíz del repositorio:
+
+```powershell
+conda activate .venv
+python -m pip install -r requirements-quality.txt
+python -m pytest tests/ -m "not deepchecks" -q
+python -m quality.secrets_scan
+python -m bandit -r tc5061_proyecto_equipo19 quality -ll
+python -m pip_audit --local
+```
+
+`-ll` en Bandit informa problemas de severidad **media y alta**. Se debe revisar
+cada hallazgo antes de cerrar la actividad (no se utiliza `--exit-zero`).
+`pip-audit --local` consulta bases públicas de vulnerabilidades, por lo que **requiere
+acceso a Internet**; si encuentra CVE o falla la consulta, se debe investigar y
+registrar la excepción o actualizar paquetes. El detector de secretos local comprueba
+los archivos de texto versionables y algunos patrones de credenciales, pero **no
+sustituye** una auditoría de historial Git ni un escáner integral de secretos.
+
+### 2. DeepChecks — entorno separado con Python 3.10
+
+**No instalar DeepChecks dentro de `.venv`:** este proyecto fija Python 3.14,
+NumPy 2 y pandas 3, mientras que `deepchecks==0.19.1` se distribuye con
+compatibilidad histórica para otras versiones. Usar un entorno separado evita
+modificar las dependencias de entrenamiento y el MLflow que ya funcionan.
+
+```powershell
+conda create -n mibici_deepchecks python=3.10 -y
+conda activate mibici_deepchecks
+python -m pip install -r requirements-deepchecks.txt
+python -m pytest tests/test_deepchecks.py -q
+python -m quality.deepchecks_validation --problem P1 --demo
+python -m quality.deepchecks_validation --problem P2 --demo
+python -m quality.deepchecks_validation --problem P3 --demo
+```
+
+`--demo` ejecuta validaciones **sintéticas**: demuestra la integración técnica,
+pero **no verifica datos reales de MiBici**. El parámetro `--problem` es opcional
+cuando se valida P1: su valor por defecto es `P1`.
+
+| Pregunta | Controles específicos | Informes por defecto |
+|---|---|---|
+| P1 (regresión) | Columnas, demanda positiva, claves fecha-estación, nulos, duplicados, drift de estación/día de semana | `reports/quality/` |
+| P2 (clasificación) | `y_riesgo` en {0,1}, estación-hora única, capacidad positiva, ocupación entre 0 y 1, nulos históricos permitidos, drift | `reports/quality/p2/` |
+| P3 (clustering) | Una fila por estación, conteos consistentes, ratio fin de semana, proporciones horarias, coordenadas, drift de perfiles **sin target** | `reports/quality/p3/` |
+
+Cada ejecución genera `integridad_train.html`, `integridad_test.html`,
+`drift_train_test.html` y `summary.json`. El drift se informa como advertencia:
+las particiones son cronológicas y una diferencia estacional no significa
+necesariamente fuga de datos ni un error de calidad. Si deseas tratarlo como
+fallo, usa `--fail-on-drift`.
+
+### 2.1. Validación de datos reales de P1, P2 y P3
+
+**Paso A: exportar en el entorno principal (`.venv`)**. No hay necesidad de
+instalar DeepChecks en el entorno de entrenamiento.
+
+```powershell
+conda activate .venv
+
+python -m quality.export_p1_samples --max-rows 3000
+
+python -m quality.export_p23_samples --problem P2 --max-rows 3000
+
+python -m quality.export_p23_samples --problem P3 --max-trips-per-month 20000
+```
+
+**Paso B: analizar las muestras con DeepChecks (`mibici_deepchecks`)**:
+
+```powershell
+conda activate mibici_deepchecks
+python -m pip install -r requirements-deepchecks.txt
+python -m pytest tests/test_deepchecks.py -q
+
+python -m quality.deepchecks_validation --problem P1 --train data/interim/quality_train_p1.csv --test data/interim/quality_test_p1.csv
+python -m quality.deepchecks_validation --problem P2 --train data/interim/quality_train_p2.csv --test data/interim/quality_test_p2.csv
+python -m quality.deepchecks_validation --problem P3 --train data/interim/quality_train_p3.csv --test data/interim/quality_test_p3.csv
+```
+
+Las muestras exportadas contienen únicamente agregados por estación y hora
+(P2) o perfiles agregados por estación (P3); no incluyen usuarios ni IDs de
+viajes. **El exportador P3, con `--max-trips-per-month 20000`, estima perfiles
+sobre una muestra por mes**: su volumen no representa los totales reales y
+las diferencias de drift deben interpretarse con precaución. Para exportar
+perfiles P3 sobre todos los viajes, usa `--max-trips-per-month 0` (requiere
+más memoria). Del mismo modo, `--max-rows 0` exporta toda la tabla P2.
+
+Los informes se guardan en `reports/quality/` (carpeta ignorada por Git).
+Para la entrega al profesor, **toma capturas reales** de los resultados y
+agrega solo las imágenes a `evidencias/`; revisa que no contengan secretos.
+
+### 3. Protección de información confidencial
+
+- `.gitignore` excluye `.env`, variantes locales, archivos de claves, datos brutos,
+  datos procesados, MLflow SQLite, artefactos y reportes locales.
+- `.env.example` solo contiene **marcadores** sin valores reales. Nunca subir la
+  configuración de Supabase ni pegar credenciales en capturas o issues.
+- Si el `.env` llegó a versionarse, `.gitignore` **no lo elimina del historial**:
+  se debe dejar de rastrear con `git rm --cached .env`, revocar/rotar las claves
+  y sanear el historial si corresponde.
+- No incluir `mlflow.db` ni el contenido de `data/` en los ZIP de entrega.
+
+### 4. Ejecución en un solo comando y CI
+
+```powershell
+python -m pytest tests/ -m "not deepchecks" -q
+```
+
+También puedes usar `make test` en sistemas con `make`; en GitHub Actions el archivo
+`.github/workflows/quality-security.yml` define dos *jobs* separados: uno para
+PyTest (incluidas P2 y P3), secretos, Bandit y pip-audit, y otro para DeepChecks
+P1/P2/P3 con Python 3.10.
+El segundo adjunta reportes HTML/JSON como artefactos de Actions. **La demo de CI
+no valida el dataset real** porque los CSV/Parquet privados no están en Git.

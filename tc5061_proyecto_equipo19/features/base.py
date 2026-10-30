@@ -26,8 +26,6 @@ from tc5061_proyecto_equipo19.config import (
     FECHA_FIN,
     FECHA_INICIO,
     FERIADOS,
-    FIN_ENTRENAMIENTO,
-    FIN_VALIDACION,
     INICIO_PRUEBA,
     INICIO_VALIDACION,
     INTERIM_DATA_DIR,
@@ -169,8 +167,8 @@ def particion_temporal(df: pd.DataFrame, columna_tiempo: str) -> pd.Series:
     return pd.Series(
         np.select(
             [
-                t <= pd.Timestamp(FIN_ENTRENAMIENTO),
-                (t >= pd.Timestamp(INICIO_VALIDACION)) & (t <= pd.Timestamp(FIN_VALIDACION)),
+                t < pd.Timestamp(INICIO_VALIDACION),
+                (t >= pd.Timestamp(INICIO_VALIDACION)) & (t < pd.Timestamp(INICIO_PRUEBA)),
                 t >= pd.Timestamp(INICIO_PRUEBA),
             ],
             ["train", "valid", "test"],
