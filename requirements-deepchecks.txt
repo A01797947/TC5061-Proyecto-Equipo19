@@ -1,0 +1,14 @@
+# Deepchecks 0.19.1 es una release anterior a las versiones numpy/pandas del proyecto.
+deepchecks==0.19.1
+pytest>=8,<9
+numpy>=1.23,<2
+pandas>=1.5,<2.1
+scikit-learn>=1.2,<1.5
+# Compatibilidad de reportes HTML DeepChecks 0.19.1 / Plotly 6
+setuptools==80.9.0
+anywidget>=0.9,<1
+# Importaciones de config.py y features/base.py (sin MLflow en este entorno)
+python-dotenv>=1.0,<2
+loguru>=0.7,<1
+# Typer es importado por las funciones de ingeniería de características P2.
+typer>=0.12,<1

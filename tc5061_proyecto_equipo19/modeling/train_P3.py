@@ -30,6 +30,7 @@ from sklearn.preprocessing import StandardScaler
 
 from tc5061_proyecto_equipo19 import config as cfg
 from tc5061_proyecto_equipo19.features.p3 import construir_features_estaciones
+from tc5061_proyecto_equipo19.modeling.p3_pipeline import build_pipeline
 from tc5061_proyecto_equipo19.modeling.mlflow_utils import (
     configurar_experimento,
     iniciar_run,
@@ -89,25 +90,6 @@ def get_feature_columns(features: pd.DataFrame, model_type: str) -> list[str]:
         c for c in features.columns
         if c.startswith(("salidas_hora_", "salidas_dia_"))
     ]
-
-def build_pipeline (model_type, columns, n_clusters, n_init, max_iter, random_state,
-                    n_components = 5, volume_weight=2.0):
-    kmeans = KMeans(n_clusters=n_clusters, n_init=n_init, max_iter=max_iter,
-                    random_state=random_state, algorithm="lloyd")
-    if model_type != "hibrido":
-        return Pipeline([("scaler", StandardScaler()), ("kmeans", kmeans)])
-
-    volume_cols = ["log_viajes_dia"]
-    profile_cols = [c for c in columns if c not in volume_cols]
-    features = ColumnTransformer(
-        [
-            ("perfil", Pipeline([("scaler", StandardScaler()), 
-                                 ("pca", PCA(n_components=n_components, random_state=random_state))]), profile_cols),
-            ("volumen", StandardScaler(), volume_cols)
-        ],
-        transformer_weights={"perfil": 1.0, "volumen": volume_weight}
-    )
-    return Pipeline([("features", features), ("kmeans", kmeans)])
 
 def train_evaluate(features: pd.DataFrame, columns: list[str], n_clusters: int = 3, n_init: int = 10, max_iter: int = 300, 
                    random_state: int = 42, output_dir: str | Path | None = None, model_type: str = "candidate", 

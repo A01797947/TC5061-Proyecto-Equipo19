@@ -105,3 +105,17 @@ export PRINT_HELP_PYSCRIPT
 
 help:
 	@$(PYTHON_INTERPRETER) -c "${PRINT_HELP_PYSCRIPT}" < $(MAKEFILE_LIST)
+
+# Calidad (en Windows PowerShell puede invocarse cada comando desde README)
+.PHONY: test security deepchecks
+
+test:
+	$(PYTHON_INTERPRETER) -m pytest tests/ -m "not deepchecks" -q
+
+security:
+	$(PYTHON_INTERPRETER) -m quality.secrets_scan
+	$(PYTHON_INTERPRETER) -m bandit -r tc5061_proyecto_equipo19 quality -ll
+	$(PYTHON_INTERPRETER) -m pip_audit -r requirements.txt
+
+deepchecks:
+	$(PYTHON_INTERPRETER) -m pytest tests/test_deepchecks.py -q
