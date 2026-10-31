@@ -12,15 +12,13 @@ import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
 import pandas as pd
-from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
 
 from tc5061_proyecto_equipo19 import config as cfg
 from tc5061_proyecto_equipo19.features.p1 import construir_demanda_diaria
+from tc5061_proyecto_equipo19.modeling.p1_pipeline import build_pipeline
 from tc5061_proyecto_equipo19.modeling.mlflow_utils import configurar_experimento, iniciar_run, log_modelo_sklearn
 from tc5061_proyecto_equipo19.modeling.artifacts import log_run_config
 
@@ -30,17 +28,6 @@ def load_data(file_path: Path | None = None) -> pd.DataFrame:
     ruta = file_path if file_path else cfg.INTERIM_DATA_DIR / 'viajes_limpios_enriquecidos.parquet'
     print(f"Cargando datos desde: {ruta}")
     return pd.read_parquet(ruta)
-
-
-def build_pipeline(model) -> Pipeline:
-    """Preprocesamiento categórico/numérico y regresor."""
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("cat", OneHotEncoder(handle_unknown="ignore", drop="first"), ["origin_station_id"]),
-            ("num", "passthrough", ["Año", "Mes", "Dia", "Dia_semana"]),
-        ]
-    )
-    return Pipeline([("preprocessor", preprocessor), ("regressor", model)])
 
 
 def split_temporal(X: pd.DataFrame, y: pd.Series) -> dict:

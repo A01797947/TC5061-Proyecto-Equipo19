@@ -211,3 +211,13 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+# Seguridad: variantes de .env, credenciales y reportes locales.
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.secrets.*
+reports/quality/
+security-reports/

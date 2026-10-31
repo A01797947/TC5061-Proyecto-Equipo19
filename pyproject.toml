@@ -43,6 +43,8 @@ extend-select = ["I"]  # Add import sorting
 known-first-party = ["tc5061_proyecto_equipo19"]
 force-sort-within-sections = true
 
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = ["deepchecks: chequeos en entorno aislado Python 3.10"]

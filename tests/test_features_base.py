@@ -192,7 +192,7 @@ class TestParticionTemporal:
         assert particiones.iloc[1] == "valid"
         assert particiones.iloc[2] == "valid"
         assert particiones.iloc[3] == "test"
-        assert particiones.iloc[4] == "fuera"
+        assert particiones.iloc[4] == "train"
 
 class TestDividirParticiones:
     def test_dividir_particiones_respetando_cortes_y_huecos(self):
