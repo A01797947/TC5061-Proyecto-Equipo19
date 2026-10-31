@@ -183,9 +183,9 @@ class TestParticionTemporal:
         df = pd.DataFrame({
             "timestamp": pd.to_datetime([
                 "2025-06-30 23:59:59", "2025-07-01", "2025-09-30 23:59:59",
-                "2025-10-01", "2025-06-30 23:59:59.500",
+                "2025-10-01", "2025-06-30 23:59:59.500", "2025-09-30 23:59:59.500",
             ], format="mixed"),
-            "id": [1, 2, 3, 4, 5],
+            "id": [1, 2, 3, 4, 5, 6],
         })
         particiones = particion_temporal(df, "timestamp")
         assert particiones.iloc[0] == "train"
@@ -193,6 +193,7 @@ class TestParticionTemporal:
         assert particiones.iloc[2] == "valid"
         assert particiones.iloc[3] == "test"
         assert particiones.iloc[4] == "train"
+        assert particiones.iloc[5] == "valid"
 
 class TestDividirParticiones:
     def test_dividir_particiones_respetando_cortes_y_huecos(self):
