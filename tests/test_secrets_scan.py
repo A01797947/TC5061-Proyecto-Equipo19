@@ -18,3 +18,20 @@ def test_detector_no_lee_entornos_ignorados(tmp_path):
     issues, total = scan_paths(tmp_path)
     assert not issues
     assert total == 1
+
+
+def test_detector_no_marca_variables_vacias_de_env_example(tmp_path):
+    # Una variable vacía no debe "robarse" la línea siguiente como si fuera su valor.
+    (tmp_path / ".env.example").write_text(
+        "DATABASE_URL=\n\n# Supabase Storage (compatible con S3)\nAWS_ACCESS_KEY_ID=\n",
+        encoding="utf-8",
+    )
+    issues, total = scan_paths(tmp_path)
+    assert total == 1
+    assert not issues
+
+
+def test_detector_si_marca_valor_real_en_la_misma_linea(tmp_path):
+    (tmp_path / "settings.py").write_text('PASSWORD = "contrasena-muy-real-123"\n', encoding="utf-8")
+    issues, _ = scan_paths(tmp_path)
+    assert any("literal de credencial" in issue for issue in issues)

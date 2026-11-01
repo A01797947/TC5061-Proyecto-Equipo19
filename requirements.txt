@@ -10,7 +10,7 @@ requests==2.34.2
 # Modelado y experimentos
 scikit-learn==1.9.1
 scipy==1.18.1
-mlflow==3.17.1
+mlflow==3.17.2
 
 # Visualización
 matplotlib==3.11.2

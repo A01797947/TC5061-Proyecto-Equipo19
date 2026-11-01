@@ -22,7 +22,7 @@ PATTERNS = [
 
 ASSIGNMENT = re.compile(
     r"(?im)^\s*(?:AWS_SECRET_ACCESS_KEY|AWS_ACCESS_KEY_ID|PASSWORD|API_KEY|SECRET_KEY|DATABASE_URL)"
-    r"\s*=\s*(.+?)\s*$"
+    r"[ \t]*=[ \t]*(.*?)[ \t]*$"
 )
 
 
