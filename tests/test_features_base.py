@@ -1,5 +1,3 @@
-from operator import index
-
 import pandas as pd
 import pytest
 
@@ -13,6 +11,7 @@ from tc5061_proyecto_equipo19.features.base import (
     agregar_calendario,
     cargar_datos_viajes_y_estaciones,
 )
+from tc5061_proyecto_equipo19.config import PROCESSED_DATA_DIR
 
 
 class TestLimpiarDatosViajes:
@@ -225,6 +224,10 @@ class TestAgregarCalendario:
 
 
 class TestCargarDatos:
+    @pytest.mark.skipif(
+        not any(PROCESSED_DATA_DIR.glob("trips_*.parquet")),
+        reason="Requiere los Parquet reales de la ingesta (data/processed no se versiona).",
+    )
     def test_cargar_datos(self):
         df_trips, df_stations = cargar_datos_viajes_y_estaciones()
         assert not df_trips.empty
