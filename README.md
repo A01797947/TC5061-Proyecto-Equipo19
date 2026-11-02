@@ -585,6 +585,21 @@ registrar la excepción o actualizar paquetes. El detector de secretos local com
 los archivos de texto versionables y algunos patrones de credenciales, pero **no
 sustituye** una auditoría de historial Git ni un escáner integral de secretos.
 
+Evidencia de ejecución de PyTest
+  
+  Evidencia: python -m pytest tests/ -m "not deepchecks" -q
+
+  ![Evidencia: python -m pytest tests/ -m "not deepchecks" -q](docs/Pytests.png)
+
+
+Evidencia de ejecución de chequeos de seguridad
+
+  Evidencia: python -m bandit -r tc5061_proyecto_equipo19 quality -ll
+    ![Evidencia: python -m bandit -r tc5061_proyecto_equipo19 quality -ll](docs/bandit.png)
+
+  Evidencia: python -m pip_audit --local
+    ![Evidencia: python -m pip_audit --local](docs/audit.png)
+
 ### 2. DeepChecks — entorno separado con Python 3.10
 
 **No instalar DeepChecks dentro de `.venv`:** este proyecto fija Python 3.14,
@@ -617,6 +632,26 @@ Cada ejecución genera `integridad_train.html`, `integridad_test.html`,
 las particiones son cronológicas y una diferencia estacional no significa
 necesariamente fuga de datos ni un error de calidad. Si deseas tratarlo como
 fallo, usa `--fail-on-drift`.
+
+
+Evidencia de ejecución de DeepChecks
+
+  Evidencia: python -m pip install -r requirements-deepchecks.txt
+    ![Evidencia: python -m pip install -r requirements-deepchecks.txt](docs/DeepCheck_requirements.png)
+
+  Evidencia: python -m pytest tests/test_deepchecks.py -q
+    ![Evidencia: python -m pytest tests/test_deepchecks.py -q](docs/DeepCheck_tests.png)
+
+  Evidencia: python -m quality.deepchecks_validation --problem P1 --demo
+    ![Evidencia: python -m quality.deepchecks_validation --problem P1 --demo](docs/DeepCheck_P1.png)
+
+  Evidencia: python -m quality.deepchecks_validation --problem P2 --demo
+    ![Evidencia: python -m quality.deepchecks_validation --problem P2 --demo](docs/DeepCheck_P2.png)
+
+  Evidencia: python -m quality.deepchecks_validation --problem P3 --demo
+    ![Evidencia: python -m quality.deepchecks_validation --problem P3 --demo](docs/DeepCheck_P3.png)
+
+
 
 ### 2.1. Validación de datos reales de P1, P2 y P3
 
@@ -653,9 +688,22 @@ las diferencias de drift deben interpretarse con precaución. Para exportar
 perfiles P3 sobre todos los viajes, usa `--max-trips-per-month 0` (requiere
 más memoria). Del mismo modo, `--max-rows 0` exporta toda la tabla P2.
 
-Los informes se guardan en `reports/quality/` (carpeta ignorada por Git).
-Para la entrega al profesor, **toma capturas reales** de los resultados y
-agrega solo las imágenes a `evidencias/`; revisa que no contengan secretos.
+
+Evidencia Validación de datos reales de P1, P2 y P3
+
+  Evidencia: python -m pytest tests/test_deepchecks.py -q para validación de datos reales
+    ![Evidencia: python -m pytest tests/test_deepchecks.py -q](docs/DeepCheck_datosreales_tests.png)
+
+  Evidencia: python -m quality.deepchecks_validation --problem P1 --train data/interim/quality_train_p1.csv --test data/interim/quality_test_p1.csv
+    ![Evidencia: python -m quality.deepchecks_validation --problem P1 --train data/interim/quality_train_p1.csv --test data/interim/quality_test_p1.csv](docs/DeepCheck_datosreales_P1.png)
+
+  Evidencia: python -m quality.deepchecks_validation --problem P2 --train data/interim/quality_train_p2.csv --test data/interim/quality_test_p2.csv
+    ![Evidencia: python -m quality.deepchecks_validation --problem P2 --train data/interim/quality_train_p2.csv --test data/interim/quality_test_p2.csv](docs/DeepCheck_datosreales_P2.png)
+
+  Evidencia: python -m quality.deepchecks_validation --problem P3 --train data/interim/quality_train_p3.csv --test data/interim/quality_test_p3.csv
+    ![Evidencia: python -m quality.deepchecks_validation --problem P3 --train data/interim/quality_train_p3.csv --test data/interim/quality_test_p3.csv](docs/DeepCheck_datosreales_P3.png)
+
+
 
 ### 3. Protección de información confidencial
 
