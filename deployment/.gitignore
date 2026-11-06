@@ -1,0 +1,3 @@
+# Los snapshots exportados son binarios y se incluyen solo en la imagen construida.
+model_store/*
+!model_store/.gitkeep

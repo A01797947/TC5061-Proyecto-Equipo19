@@ -728,3 +728,294 @@ PyTest (incluidas P2 y P3), secretos, Bandit y pip-audit, y otro para DeepChecks
 P1/P2/P3 con Python 3.10.
 El segundo adjunta reportes HTML/JSON como artefactos de Actions. **La demo de CI
 no valida el dataset real** porque los CSV/Parquet privados no están en Git.
+
+---
+
+## Despliegue de los 3 modelos como API REST (FastAPI + Podman)
+
+Esta fase **mantiene** los entrenamientos, Model Registry, PyTest y revisiones de
+seguridad de las entregas anteriores. La API agrega predicción en tiempo real
+para las tres preguntas: `P1` (demanda diaria), `P2` (riesgo operativo en las
+próximas tres horas) y `P3` (clúster del perfil agregado de estación).
+
+### A. Estrategia de despliegue elegida y requisitos
+
+**Estrategia: snapshot de los modelos registrados incluido en la imagen OCI.**
+El comando `python -m deployment.export_models` consulta **MLflow Model Registry**,
+resuelve el alias `champion` y su **versión exacta**, descarga el artefacto de
+cada modelo, valida su firma y prepara un snapshot en
+`deployment/model_store/{p1,p2,p3}/`. El exportador genera un manifiesto
+con nombres, versiones, entradas y hashes SHA-256. El contenedor verifica el
+hash de cada modelo al iniciarse y lo carga con `mlflow.pyfunc.load_model`.
+
+**Motivo:** el Registry de este repositorio contiene rutas `file:///D:/...`
+propias del Windows donde se entrenó. Un contenedor Linux no puede leerlas
+mediante `http://host.containers.internal:5000`. Al **exportar primero en
+Windows y después empaquetar** los artefactos, la imagen final es autónoma:
+no requiere `mlflow.db`, `mlartifacts/`, `.env`, un servidor MLflow ni acceso
+al almacenamiento S3 para realizar predicciones. `MLFLOW_TRACKING_URI` se usa
+en la **exportación en el equipo anfitrión**, no en el contenedor. Un cambio
+de alias requiere volver a exportar y construir la imagen: eso fija la
+versión desplegada y mejora la reproducibilidad. Es inferencia **online**
+(HTTP de una fila por petición), no batch; los modelos se cargan una vez
+al iniciar el proceso y se reutilizan en todas las peticiones.
+
+**Requisitos:** Windows con PowerShell; entorno local `mlops_tec` funcionando
+con MLflow 3.17.2, scikit-learn 1.9.1 y Python 3.14 (de acuerdo con
+`requirements.txt`); Podman instalado y su máquina Linux inicializada.
+Si ya utilizas otro entorno compatible, puedes mantenerlo. Para descargar
+los tres modelos **deben existir sus artefactos originales** en las rutas
+guardadas en MLflow; el ZIP reducido no incluye `mlartifacts`.
+
+Los modelos registrados son:
+
+| Pregunta | Nombre del modelo | Alias | Versión del `mlflow.db` adjunto |
+|---|---|---|---|
+| P1 – Regresión | `mibici-equipo19-p1-demanda` | `champion` | 1 |
+| P2 – Clasificación | `mibici-equipo19-p2-riesgo` | `champion` | 1 |
+| P3 – Clustering | `mibici-equipo19-p3-grupos` | `champion` | 1 |
+
+Si el Registry cambia, la versión real se resolverá de nuevo durante la
+exportación y se verá en `deployment/model_store/manifest.json` y en la API.
+
+### B. Exportar snapshots desde el Model Registry (PowerShell)
+
+Ejecutar en **la raíz del repositorio** y con el entorno `mlops_tec` activo:
+
+```powershell
+# Instalar las nuevas dependencias de FastAPI/Pydantic, además de las ya usadas.
+python -m pip install -r requirements.txt
+
+# Comprobar que los modelos están registrados (y accesibles).
+python -m tc5061_proyecto_equipo19.modeling.verify_models
+
+# Exportar versiones champion a deployment/model_store.
+# No necesita servidor MLflow si utiliza el archivo mlflow.db local.
+python -m deployment.export_models
+
+# Revisar versiones/firma/exportación.
+Get-Content .\deployment\model_store\manifest.json
+```
+
+También se puede utilizar un Registry HTTP existente con:
+
+```powershell
+python -m deployment.export_models --tracking-uri http://127.0.0.1:5000
+```
+
+**Importante:** usar la URL HTTP no convierte automáticamente las referencias
+`file:///D:/...` en artefactos descargables remotamente. Si el modelo fue
+registrado con esas rutas locales, la exportación debe ejecutarse en el
+Windows que posee esos archivos. Si aparece `No such file or directory`,
+`Unable to download` o `Model not found`, comprobar primero que las carpetas
+`mlartifacts/models/.../artifacts/` originales existan, y que `mlflow.db`
+corresponda al mismo entrenamiento. No es necesario volver a entrenar si
+los artefactos se conservan.
+
+El exportador genera automáticamente
+`deployment/model_store/p3_ejemplo_peticion.json` desde el `input_example`
+del campeón P3. Esto garantiza que el ejemplo utiliza **exactamente las
+columnas que espera la versión elegida**; P3 no tiene una lista única de
+variables, pues las variantes baseline, perfil, candidato e híbrido usan
+combinaciones diferentes. El ejemplo es demostrativo, no equivale a los
+valores actualizados de una estación en producción.
+
+### C. Construir y ejecutar con Podman
+
+Desde la raíz del repositorio (con los snapshots exportados):
+
+```powershell
+# Primer uso: crear una máquina Linux si no existe, e iniciarla.
+podman machine init
+podman machine start
+
+# Crear imagen OCI (también compatible con docker build).
+podman build -f Containerfile -t mibici-equipo19-api:1.0 .
+
+# Levantar contenedor en segundo plano. Solo se publica en localhost.
+podman run -d --name mibici-api -p 127.0.0.1:8000:8000 mibici-equipo19-api:1.0
+
+# Inspeccionar estado y logs.
+podman ps
+podman logs mibici-api
+
+# Verificar el endpoint de salud y descubrir esquemas.
+Invoke-RestMethod -Uri http://127.0.0.1:8000/health
+Invoke-RestMethod -Uri http://127.0.0.1:8000/v1/models
+```
+
+Si `podman machine init` indica que ya existe una máquina, **no volver a
+crearla**: ejecutar solo `podman machine start` si está detenida. Se puede
+acceder a la documentación interactiva en
+**http://127.0.0.1:8000/docs** y a OpenAPI JSON en
+`http://127.0.0.1:8000/openapi.json`.
+
+### Solución a `El snapshot p1 cambió desde su exportación` (Podman)
+
+Si `podman logs mibici-api` muestra `RuntimeError: El snapshot p1 cambió desde su exportación`,
+la API se detuvo al comprobar SHA256 de los artefactos. Una causa posible es que
+los patrones globales (`*.csv`, `*.parquet`, `*.db`, `data/`) de un archivo
+`.containerignore`/`.dockerignore` anterior hayan omitido archivos de
+`deployment/model_store` en el contexto de construcción.
+
+Esta versión conserva completo `deployment/model_store` y comprueba los tres
+hashes **durante `podman build`**, además de validarlos cuando FastAPI inicia.
+Después de copiar el parche, comprobar primero el snapshot local:
+
+```powershell
+python -m deployment.verify_snapshot
+```
+
+Si se verifican P1, P2 y P3, eliminar el contenedor detenido y reconstruir
+sin caché para sustituir la imagen anterior:
+
+```powershell
+podman rm -f mibici-api
+podman build --no-cache -f Containerfile -t mibici-equipo19-api:1.0 .
+podman run -d --name mibici-api -p 127.0.0.1:8000:8000 mibici-equipo19-api:1.0
+podman ps -a
+podman logs mibici-api
+python -m deployment.smoke_test
+```
+
+Si el `podman build` falla ahora en `verify_snapshot`, revisar si faltan
+archivos en el contexto; no deshabilitar SHA256. Si falla también la
+verificación **local**, repetir `python -m deployment.export_models` con acceso
+a MLflow y los artefactos originales y luego reconstruir.
+
+### D. Endpoints y validación de entradas/salidas
+
+| Verbo y ruta | Uso | Respuesta |
+|---|---|---|
+| `GET /health` | Salud y versiones cargadas | `status`, `models` |
+| `GET /v1/models` | Lista de modelos, alias y columnas según la firma MLflow | arreglo JSON |
+| `GET /v1/models/p3` | Saber qué variables exactas recibe P3 | `variables` |
+| `POST /v1/predict/p1` | Predecir demanda diaria por estación | `prediccion_viajes` (real) |
+| `POST /v1/predict/p2` | Predecir riesgo de estación vacía o llena a tres horas | `riesgo` (0/1), `probabilidad_riesgo` (0..1 o null) |
+| `POST /v1/predict/p3` | Asignar un perfil de estación a un clúster | `cluster` (entero) |
+
+Las entradas usan **Pydantic**: rechazan campos desconocidos, variables
+faltantes, fechas inválidas, fechas inconsistentes (`Dia_semana`), rangos
+incorrectos, e infinitos/NaN. Además, antes de predecir, las columnas se
+alinean exactamente con los nombres y los tipos definidos en la **firma del
+modelo registrado**. Si falta o sobra una variable, se devuelve
+`422 Unprocessable Entity`, no una predicción inválida.
+
+**P1**: `Año`, `Mes`, `Dia`, `Dia_semana` (lunes=0) y `origin_station_id`.
+Predice el número de viajes por estación y día. La salida es el valor bruto
+de regresión, que puede ser fraccionario o incluso negativo si el modelo
+lineal extrapola fuera de su rango; no se trunca silenciosamente.
+
+**P2**: utiliza las 23 variables exactas de
+`tc5061_proyecto_equipo19/features/p2.py`, como ocupación estimada, salidas,
+llegadas, capacidad, hora e históricos. `riesgo=1` significa riesgo según
+la **aproximación de balance de viajes** documentada en
+`references/p2_riesgo_estaciones.md`; no es una lectura del inventario real.
+Si el pipeline expone `predict_proba`, la API devuelve la probabilidad de
+la clase 1; en caso contrario devuelve `null`. Las variables históricas
+admiten JSON `null` si la firma MLflow admite el valor faltante.
+
+**P3**: recibe `{"features": {...}}` con los datos agregados por estación
+para el período de referencia, **no** el ID de estación ni viajes crudos.
+La API exige exactamente las variables de la firma MLflow del campeón P3.
+El número del clúster no es una categoría semántica fija: su descripción se
+obtiene de los reportes de entrenamiento del modelo.
+
+### E. Peticiones de prueba con PowerShell
+
+**P1 — demanda diaria:**
+
+```powershell
+$body = Get-Content -Raw -Encoding UTF8 .\deployment\examples\p1.json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/predict/p1 -ContentType 'application/json; charset=utf-8' -Body $body
+```
+
+**P2 — riesgo de estación:**
+
+```powershell
+$body = Get-Content -Raw -Encoding UTF8 .\deployment\examples\p2.json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/predict/p2 -ContentType 'application/json; charset=utf-8' -Body $body
+```
+
+**P3 — clúster de estación, usando la firma registrada:**
+
+```powershell
+$body = Get-Content -Raw -Encoding UTF8 .\deployment\model_store\p3_ejemplo_peticion.json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/predict/p3 -ContentType 'application/json; charset=utf-8' -Body $body
+```
+
+**Ejemplos ilustrativos de respuestas JSON** (las predicciones reales cambiarán
+según el modelo y la entrada; no son resultados medidos en el contenedor):
+
+```json
+{"modelo": "mibici-equipo19-p1-demanda", "version": "1", "prediccion_viajes": 12.5}
+```
+
+```json
+{"modelo": "mibici-equipo19-p2-riesgo", "version": "1", "riesgo": 1, "probabilidad_riesgo": 0.83}
+```
+
+```json
+{"modelo": "mibici-equipo19-p3-grupos", "version": "1", "cluster": 2}
+```
+
+Para ejecutar las **tres peticiones de una sola vez**, verificando respuestas
+de modelos reales del contenedor:
+
+```powershell
+python -m deployment.smoke_test
+```
+
+El script imprime el `GET /health` y los tres `POST`. Si alguno falla, termina
+con error. **Tomar como evidencia las respuestas reales**, no las ilustrativas.
+
+### F. Pruebas unitarias y evidencias
+
+```powershell
+# API: nueve pruebas aisladas (incluye simulación de exportación del Registry).
+python -m pytest tests/test_deployment_api.py -q
+
+# Resto de pruebas de calidad previas.
+python -m pytest tests/ -m 'not deepchecks' -q
+
+# Guardar logs (capturas opcionales en evidencias/).
+podman logs mibici-api
+
+# Detener/eliminar el contenedor cuando termine la demostración.
+podman stop mibici-api
+podman rm mibici-api
+```
+
+Evidencias recomendadas: `manifest.json` con tres versiones y firmas, salida
+de `podman build`, salida de `podman ps`, `GET /health`, captura de `/docs`,
+tres respuestas `POST` y ejecución de PyTest. Las imágenes y `mlartifacts`
+no deben subirse al repositorio; `.gitignore`, `.containerignore` y
+`.dockerignore` excluyen datos y credenciales del contexto de compilación.
+En particular, **no pasar nunca `.env`, secretos Supabase ni llaves AWS a la
+imagen**. Se recomienda usar el servicio solo en `127.0.0.1` para esta demo:
+para publicarlo requeriría autenticación, HTTPS y controles operativos.
+
+### G. Estructura de archivos de esta entrega
+
+```text
+Containerfile                     # Imagen OCI y usuario sin privilegios
+requirements-serving.txt          # Dependencias reducidas de inferencia
+.containerignore, .dockerignore   # Excluyen credenciales y datos del build
+ deployment/
+   api/
+     main.py                       # FastAPI y endpoints
+     schemas.py                    # Esquemas Pydantic
+     inference.py                  # Verificación, carga y predicción de MLflow
+   export_models.py               # Registry -> snapshot versionado y verificado
+   smoke_test.py                  # Prueba HTTP real P1/P2/P3
+   examples/
+     p1.json, p2.json             # Peticiones ilustrativas
+   model_store/                   # Generado en Windows, NO versionado
+     manifest.json
+     p3_ejemplo_peticion.json
+     p1/, p2/, p3/                # Artefactos MLflow originales
+ tests/test_deployment_api.py      # Tests de FastAPI y validadores
+```
+
+**Nota de portabilidad:** Docker funciona también sustituyendo `podman` por
+`docker` en los comandos `build`, `run`, `ps`, `logs`, `stop` y `rm`.

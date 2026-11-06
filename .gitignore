@@ -221,3 +221,7 @@ cython_debug/
 .secrets.*
 reports/quality/
 security-reports/
+
+# Snapshot generado desde Registry (artefactos grandes, fuera de Git).
+/deployment/model_store/*
+!/deployment/model_store/.gitkeep

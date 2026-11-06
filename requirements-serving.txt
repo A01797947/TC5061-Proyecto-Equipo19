@@ -1,0 +1,15 @@
+# Dependencias del servicio de inferencia MiBici.
+# Las versiones de MLflow, numpy, pandas, skops, psutil y rich se fijan
+# según los requisitos embebidos en los snapshots MLflow registrados.
+numpy==2.5.3
+pandas==3.0.5
+scikit-learn==1.9.1
+scipy==1.18.1
+mlflow==3.16.1
+skops==0.14.0
+psutil==7.2.2
+rich==15.0.0
+fastapi==0.162.0
+starlette==1.10.0
+uvicorn==0.38.0
+pydantic==2.12.4
