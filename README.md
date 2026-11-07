@@ -134,7 +134,7 @@ mlflow server --backend-store-uri "$DATABASE_URL" --artifacts-destination "s3://
 **Servidor compartido, consola 1 (Windows PowerShell):**
 
 ``` powershell
-Get-Content .env | Where-Object { $_ -match '^\s*[A-Za-z_]+=' } | ForEach-Object {
+Get-Content .env | Where-Object { $_ -match '^\s*[A-Za-z0-9_]+=' } | ForEach-Object {
     $k, $v = $_ -split '=', 2
     Set-Item -Path "Env:$($k.Trim())" -Value $v.Trim().Trim('"')
 }
@@ -782,26 +782,31 @@ exportación y se verá en `deployment/model_store/manifest.json` y en la API.
 
 Ejecutar en **la raíz del repositorio** y con el entorno `mlops_tec` activo:
 
+
+Dado que nuestros modelos están registrados en la base de datos remota de Supabase y S3, es **indispensable** levantar el servidor de MLflow localmente apuntando a esas credenciales antes de exportar los modelos para evitar errores de conexión o bloqueos de red en Windows.
+
+**Paso 1: Levantar el servidor MLflow (Consola 1)**
+En la raíz del repositorio, carga tus credenciales del archivo `.env` y levanta el servidor desactivando el middleware de seguridad (esto previene errores de "Invalid Host header"):
+
 ```powershell
+Get-Content .env | Where-Object { $_ -match '^\s*[A-Za-z0-9_]+=' } \vert{} ForEach-Object {$k, $v =$_ -split '=', 2
+    Set-Item -Path "Env:\$($k.Trim())" -Value $v.Trim().Trim('"')
+}
+
+mlflow server --backend-store-uri \$env:DATABASE_URL --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 0.0.0.0 --disable-security-middleware
+```
+
 # Instalar las nuevas dependencias de FastAPI/Pydantic, además de las ya usadas.
 python -m pip install -r requirements.txt
 
 # Comprobar que los modelos están registrados (y accesibles).
 python -m tc5061_proyecto_equipo19.modeling.verify_models
 
-# Exportar versiones champion a deployment/model_store.
-# No necesita servidor MLflow si utiliza el archivo mlflow.db local.
-python -m deployment.export_models
+# Exportar versiones champion apuntando explícitamente al servidor MLflow local activo.
+python -m deployment.export_models --tracking-uri [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
-# Revisar versiones/firma/exportación.
+# Revisar el manifiesto para confirmar la exportación exitosa.
 Get-Content .\deployment\model_store\manifest.json
-```
-
-También se puede utilizar un Registry HTTP existente con:
-
-```powershell
-python -m deployment.export_models --tracking-uri http://127.0.0.1:5000
-```
 
 **Importante:** usar la URL HTTP no convierte automáticamente las referencias
 `file:///D:/...` en artefactos descargables remotamente. Si el modelo fue
