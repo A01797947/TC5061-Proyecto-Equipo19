@@ -27,5 +27,9 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
+# La imagen slim no trae curl: se sondea /health con la biblioteca estándar.
+# start-period amplio porque la API carga los 3 modelos al arrancar.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
 # Un único proceso permite cargar los 3 modelos una sola vez en memoria.
 CMD ["uvicorn", "deployment.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
