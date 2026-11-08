@@ -28,9 +28,11 @@ jobs:
       - name: Búsqueda de secretos
         run: python -m quality.secrets_scan
       - name: Bandit (severidad media y alta)
-        run: python -m bandit -r tc5061_proyecto_equipo19 quality -ll
+        run: python -m bandit -r tc5061_proyecto_equipo19 quality deployment -ll
       - name: pip-audit de requirements.txt
         run: python -m pip_audit -r requirements.txt
+      - name: pip-audit de requirements-serving.txt (imagen de la API)
+        run: python -m pip_audit -r requirements-serving.txt
 
   deepchecks:
     name: DeepChecks P1/P2/P3 con datos sintéticos (Python 3.10)
