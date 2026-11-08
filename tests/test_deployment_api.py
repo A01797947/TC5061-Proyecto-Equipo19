@@ -57,6 +57,18 @@ def client(monkeypatch):
     with TestClient(app) as test_client:
         yield test_client
 
+@pytest.fixture
+def client_stations(monkeypatch):
+    manifest = {"models": {
+        key: {"name": NAMES[key], "version": "1", "alias": "champion", "signature": cols}
+        for key, cols in [("p1", P1), ("p2", P2), ("p3", P3)]
+    }}
+    fake_store = ModelStore({"p1": FakeModel(14.5), "p2": FakeModel(1),
+                             "p3": FakeModel(2)}, manifest, FakeClassifier(), known_stations={"10"})
+    monkeypatch.setattr(ModelStore, "load_snapshot", classmethod(lambda cls, folder: fake_store))
+    with TestClient(app) as test_client:
+        yield test_client
+
 
 def test_health_and_models(client):
     response = client.get("/health")
@@ -82,6 +94,12 @@ def test_p1_invalid_date_and_weekday(client):
     assert client.post("/v1/predict/p1", json=payload).status_code == 422
     payload["Dia"] = 31
     assert client.post("/v1/predict/p1", json=payload).status_code == 422
+
+def test_p1_valid_invalid_station(client_stations):
+    payload = json.loads((ROOT / "deployment/examples/p1.json").read_text(encoding="utf-8"))
+    assert client_stations.post("/v1/predict/p1", json=payload).status_code == 200
+    payload["origin_station_id"] = "9999"
+    assert client_stations.post("/v1/predict/p1", json=payload).status_code == 422
 
 
 def test_p2_prediction_with_probability(client):

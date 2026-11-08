@@ -911,6 +911,13 @@ Predice el número de viajes por estación y día. La salida es el valor bruto
 de regresión, que puede ser fraccionario o incluso negativo si el modelo
 lineal extrapola fuera de su rango; no se trunca silenciosamente.
 
+Además, `origin_station_id` se comprueba contra las estaciones que el modelo
+conoció al entrenar (las categorías de su `OneHotEncoder`, cargadas del
+snapshot al iniciar la API). Una estación desconocida se rechaza con
+`422 Unprocessable Entity` y el mensaje `ID de estación no válido: <id>`, en
+lugar de devolver una predicción sin sentido. El identificador puede enviarse
+como texto o como número (`"10"` o `10`).
+
 **P2**: utiliza las 23 variables exactas de
 `tc5061_proyecto_equipo19/features/p2.py`, como ocupación estimada, salidas,
 llegadas, capacidad, hora e históricos. `riesgo=1` significa riesgo según
