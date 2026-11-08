@@ -119,6 +119,23 @@ def test_p2_missing_field_and_invalid_range(client):
     assert client.post("/v1/predict/p2", json=payload).status_code == 422
 
 
+def test_p2_cyclic_hour_must_match_hora(client):
+    payload = json.loads((ROOT / "deployment/examples/p2.json").read_text(encoding="utf-8"))
+    payload["hora"] = 20  # el ejemplo trae sin/cos de las 8:00
+    response = client.post("/v1/predict/p2", json=payload)
+    assert response.status_code == 422
+    assert "hora_sin/hora_cos" in response.text
+
+
+def test_smoke_test_rejects_non_http_urls():
+    from deployment.smoke_test import validate_base_url
+
+    assert validate_base_url("http://127.0.0.1:8000/") == "http://127.0.0.1:8000"
+    for bad in ("file:///etc/passwd", "ftp://host", "127.0.0.1:8000"):
+        with pytest.raises(ValueError):
+            validate_base_url(bad)
+
+
 def test_p3_dynamic_schema_and_unknown_field(client):
     correct = {"features": {"viajes_iniciados": 10, "viajes_finalizados": 12,
                             "total_viajes": 22}}

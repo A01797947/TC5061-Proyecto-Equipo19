@@ -7,6 +7,7 @@ perfil o híbrido; el servicio valida ese mapa con la firma MLflow exportada.
 from __future__ import annotations
 
 from datetime import date
+import math
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, field_validator, model_validator
@@ -67,6 +68,14 @@ class P2Request(StrictInput):
     def validar_variables_relacionadas(self):
         if self.fin_de_semana != int(self.dia_semana >= 5):
             raise ValueError("fin_de_semana no coincide con dia_semana")
+        # Mismo cálculo que features/base.py: sin/cos(2*pi*hora/24).
+        angulo = 2 * math.pi * self.hora / 24
+        if (abs(self.hora_sin - math.sin(angulo)) > 1e-3
+                or abs(self.hora_cos - math.cos(angulo)) > 1e-3):
+            raise ValueError(
+                f"hora_sin/hora_cos no coinciden con hora={self.hora}; "
+                f"esperado {math.sin(angulo):.6f} y {math.cos(angulo):.6f}"
+            )
         if (self.ocup_min_ventana_semana_pasada is not None
                 and self.ocup_max_ventana_semana_pasada is not None
                 and self.ocup_min_ventana_semana_pasada > self.ocup_max_ventana_semana_pasada):
