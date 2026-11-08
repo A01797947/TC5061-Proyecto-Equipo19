@@ -71,7 +71,10 @@ def inference(key: str, values: dict):
 
 @app.post("/v1/predict/p1", response_model=P1Response)
 def predict_p1(data: P1Request):
-    model = store().info("p1")
+    s = store()
+    model = s.info("p1")
+    if s.known_stations is not None and str(data.origin_station_id) not in s.known_stations:
+        raise HTTPException(status_code=422, detail=f"ID de estación no válido: {data.origin_station_id}")
     value, _ = inference("p1", data.model_dump())
     return P1Response(modelo=model["modelo"], version=model["version"], prediccion_viajes=float(value))
 

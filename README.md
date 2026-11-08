@@ -829,6 +829,13 @@ valores actualizados de una estación en producción.
 
 Desde la raíz del repositorio (con los snapshots exportados):
 
+**Construcción recomendada.** `python -m deployment.build_image` verifica los
+SHA-256 de los tres modelos contra el manifiesto, arma un contexto de
+compilación aislado (sin `.env`, datos ni notebooks) y ejecuta `podman build`
+sin caché. Es la ruta que evita el error descrito más abajo (`El snapshot p1
+cambió desde su exportación`). Con `--engine docker` usa Docker en su lugar.
+El `podman build` directo del bloque siguiente es la alternativa manual.
+
 ```powershell
 # Primer uso: crear una máquina Linux si no existe, e iniciarla.
 podman machine init
@@ -848,6 +855,23 @@ podman logs mibici-api
 Invoke-RestMethod -Uri http://127.0.0.1:8000/health
 Invoke-RestMethod -Uri http://127.0.0.1:8000/v1/models
 ```
+
+En **macOS o Linux (bash)** el flujo es el mismo y cambia la verificación:
+
+```bash
+podman machine start        # solo macOS; si la máquina ya existe, no usar init
+python -m deployment.build_image
+podman run -d --name mibici-api -p 127.0.0.1:8000:8000 mibici-equipo19-api:1.0
+podman ps
+podman logs mibici-api
+curl -s http://127.0.0.1:8000/health
+curl -s http://127.0.0.1:8000/v1/models
+```
+
+Antes de levantar el contenedor, comprobar que el puerto 8000 esté libre
+(`lsof -i :8000`) y que no exista un contenedor con el mismo nombre
+(`podman rm -f mibici-api`): un proceso local o un contenedor anterior puede
+responder en lugar de la imagen nueva.
 
 Si `podman machine init` indica que ya existe una máquina, **no volver a
 crearla**: ejecutar solo `podman machine start` si está detenida. Se puede
@@ -911,6 +935,13 @@ Predice el número de viajes por estación y día. La salida es el valor bruto
 de regresión, que puede ser fraccionario o incluso negativo si el modelo
 lineal extrapola fuera de su rango; no se trunca silenciosamente.
 
+Además, `origin_station_id` se comprueba contra las estaciones que el modelo
+conoció al entrenar (las categorías de su `OneHotEncoder`, cargadas del
+snapshot al iniciar la API). Una estación desconocida se rechaza con
+`422 Unprocessable Entity` y el mensaje `ID de estación no válido: <id>`, en
+lugar de devolver una predicción sin sentido. El identificador puede enviarse
+como texto o como número (`"10"` o `10`).
+
 **P2**: utiliza las 23 variables exactas de
 `tc5061_proyecto_equipo19/features/p2.py`, como ocupación estimada, salidas,
 llegadas, capacidad, hora e históricos. `riesgo=1` significa riesgo según
@@ -926,7 +957,7 @@ La API exige exactamente las variables de la firma MLflow del campeón P3.
 El número del clúster no es una categoría semántica fija: su descripción se
 obtiene de los reportes de entrenamiento del modelo.
 
-### E. Peticiones de prueba con PowerShell
+### E. Peticiones de prueba (PowerShell y curl)
 
 **P1 — demanda diaria:**
 
@@ -949,20 +980,43 @@ $body = Get-Content -Raw -Encoding UTF8 .\deployment\model_store\p3_ejemplo_peti
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/predict/p3 -ContentType 'application/json; charset=utf-8' -Body $body
 ```
 
-**Ejemplos ilustrativos de respuestas JSON** (las predicciones reales cambiarán
-según el modelo y la entrada; no son resultados medidos en el contenedor):
+**En macOS o Linux (curl):**
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/v1/predict/p1 -H "Content-Type: application/json" -d @deployment/examples/p1.json
+curl -s -X POST http://127.0.0.1:8000/v1/predict/p2 -H "Content-Type: application/json" -d @deployment/examples/p2.json
+curl -s -X POST http://127.0.0.1:8000/v1/predict/p3 -H "Content-Type: application/json" -d @deployment/model_store/p3_ejemplo_peticion.json
+```
+
+**Respuestas reales** (capturadas del contenedor con los ejemplos de
+`deployment/examples/`; los valores cambian con el modelo y la entrada):
 
 ```json
-{"modelo": "mibici-equipo19-p1-demanda", "version": "1", "prediccion_viajes": 12.5}
+{"modelo":"mibici-equipo19-p1-demanda","version":"1","prediccion_viajes":40.8283327785889}
 ```
 
 ```json
-{"modelo": "mibici-equipo19-p2-riesgo", "version": "1", "riesgo": 1, "probabilidad_riesgo": 0.83}
+{"modelo":"mibici-equipo19-p2-riesgo","version":"1","riesgo":1,"probabilidad_riesgo":0.592456079642045}
 ```
 
 ```json
-{"modelo": "mibici-equipo19-p3-grupos", "version": "1", "cluster": 2}
+{"modelo":"mibici-equipo19-p3-grupos","version":"1","cluster":2}
 ```
+
+**Estación desconocida en P1** (HTTP 422, el modelo no la conoció al entrenar):
+
+```json
+{"detail":"ID de estación no válido: 99999"}
+```
+
+**Campo fuera de rango** (HTTP 422, validación de Pydantic; aquí `Mes: 15`):
+
+```json
+{"detail":[{"type":"less_than_equal","loc":["body","Mes"],"msg":"Input should be less than or equal to 12","input":15,"ctx":{"le":12}}]}
+```
+
+Los errores de validación de Pydantic indican el campo (`loc`) y la regla
+incumplida; el de estación desconocida devuelve un mensaje simple en `detail`.
 
 Para ejecutar las **tres peticiones de una sola vez**, verificando respuestas
 de modelos reales del contenedor:
@@ -972,12 +1026,12 @@ python -m deployment.smoke_test
 ```
 
 El script imprime el `GET /health` y los tres `POST`. Si alguno falla, termina
-con error. **Tomar como evidencia las respuestas reales**, no las ilustrativas.
+con error. **Tomar como evidencia las respuestas de la propia ejecución.**
 
 ### F. Pruebas unitarias y evidencias
 
 ```powershell
-# API: nueve pruebas aisladas (incluye simulación de exportación del Registry).
+# API: diez pruebas aisladas (incluye simulación de exportación del Registry).
 python -m pytest tests/test_deployment_api.py -q
 
 # Resto de pruebas de calidad previas.

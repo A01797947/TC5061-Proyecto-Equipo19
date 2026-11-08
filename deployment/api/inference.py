@@ -94,10 +94,11 @@ def dataframe_for_model(features: dict, signature: list[dict[str, str]]) -> pd.D
 
 
 class ModelStore:
-    def __init__(self, models: dict[str, Any], manifest: dict, classifier: Any = None):
+    def __init__(self, models: dict[str, Any], manifest: dict, classifier: Any = None, known_stations: set[str] | None = None):
         self.models = models
         self.manifest = manifest
         self.classifier = classifier
+        self.known_stations = known_stations
 
     @classmethod
     def load_snapshot(cls, root: Path) -> "ModelStore":
@@ -111,6 +112,7 @@ class ModelStore:
             raise RuntimeError("Versión de manifiesto de modelos no admitida")
         models = {}
         native_classifier = None
+        known_stations = None
         for key, name in NAMES.items():
             entry = manifest["models"][key]
             if entry.get("name") != name:
@@ -126,8 +128,12 @@ class ModelStore:
             models[key] = model
             if key == "p2":
                 native_classifier = mlflow.sklearn.load_model(str(folder))
+            if key == "p1":
+                pipeline = mlflow.sklearn.load_model(str(folder))
+                enc = pipeline.named_steps["preprocessor"].named_transformers_["cat"]
+                known_stations = set(enc.categories_[0].tolist())
         LOGGER.info("Cargados los tres modelos MiBici desde snapshots verificados")
-        return cls(models, manifest, native_classifier)
+        return cls(models, manifest, native_classifier, known_stations)
 
     def info(self, key: str) -> dict:
         entry = self.manifest["models"][key]

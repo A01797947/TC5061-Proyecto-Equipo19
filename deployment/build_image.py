@@ -82,6 +82,8 @@ def main() -> None:
         command = [args.engine, 'build', '-f', 'Containerfile', '-t', args.tag]
         if args.no_cache:
             command.append('--no-cache')
+        if args.engine == 'podman':
+            command.extend(['--format', 'docker'])
         command.append('.')
         print('Ejecutando:', ' '.join(command), flush=True)
         print('Contexto temporal:', context, flush=True)
