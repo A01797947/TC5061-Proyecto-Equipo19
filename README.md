@@ -142,7 +142,7 @@ mlflow server --backend-store-uri $env:DATABASE_URL --artifacts-destination "s3:
 ```
 
 **Consola 2:** carga también el `.env` (para `MLFLOW_ARTIFACT_LOCATION`) y define
-MLFLOW_TRACKING_URI=http://127.0.0.1:5000` antes de ejecutar `mlflow run`.
+`MLFLOW_TRACKING_URI=http://127.0.0.1:5000` antes de ejecutar `mlflow run`.
 
 > En macOS, el Receptor de AirPlay usa el puerto 5000 y puede devolver un 403 vacío en el
 > navegador. Apágalo en Ajustes del Sistema → General → AirDrop y Handoff.
@@ -789,13 +789,19 @@ Dado que nuestros modelos están registrados en la base de datos remota de Supab
 En la raíz del repositorio, carga tus credenciales del archivo `.env` y levanta el servidor desactivando el middleware de seguridad (esto previene errores de "Invalid Host header"):
 
 ```powershell
-Get-Content .env | Where-Object { $_ -match '^\s*[A-Za-z0-9_]+=' } \vert{} ForEach-Object {$k, $v =$_ -split '=', 2
-    Set-Item -Path "Env:\$($k.Trim())" -Value $v.Trim().Trim('"')
+Get-Content .env | Where-Object { $_ -match '^\s*[A-Za-z0-9_]+=' } | ForEach-Object {
+    $k, $v = $_ -split '=', 2
+    Set-Item -Path "Env:$($k.Trim())" -Value $v.Trim().Trim('"')
 }
 
-mlflow server --backend-store-uri \$env:DATABASE_URL --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 0.0.0.0 --disable-security-middleware
+# Solo en localhost: con el middleware de seguridad apagado, 0.0.0.0 expondría el
+# servidor (y el acceso a Supabase/S3) a cualquier equipo de la red.
+mlflow server --backend-store-uri $env:DATABASE_URL --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 127.0.0.1 --port 5000 --disable-security-middleware
 ```
 
+**Paso 2: Exportar los modelos (Consola 2)**
+
+```powershell
 # Instalar las nuevas dependencias de FastAPI/Pydantic, además de las ya usadas.
 python -m pip install -r requirements.txt
 
@@ -803,10 +809,11 @@ python -m pip install -r requirements.txt
 python -m tc5061_proyecto_equipo19.modeling.verify_models
 
 # Exportar versiones champion apuntando explícitamente al servidor MLflow local activo.
-python -m deployment.export_models --tracking-uri [http://127.0.0.1:5000](http://127.0.0.1:5000)
+python -m deployment.export_models --tracking-uri http://127.0.0.1:5000
 
 # Revisar el manifiesto para confirmar la exportación exitosa.
 Get-Content .\deployment\model_store\manifest.json
+```
 
 **Importante:** usar la URL HTTP no convierte automáticamente las referencias
 `file:///D:/...` en artefactos descargables remotamente. Si el modelo fue
@@ -1031,7 +1038,7 @@ con error. **Tomar como evidencia las respuestas de la propia ejecución.**
 ### F. Pruebas unitarias y evidencias
 
 ```powershell
-# API: diez pruebas aisladas (incluye simulación de exportación del Registry).
+# API: doce pruebas aisladas (incluye simulación de exportación del Registry).
 python -m pytest tests/test_deployment_api.py -q
 
 # Resto de pruebas de calidad previas.

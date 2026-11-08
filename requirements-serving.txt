@@ -1,11 +1,12 @@
 # Dependencias del servicio de inferencia MiBici.
-# Las versiones de MLflow, numpy, pandas, skops, cloudpickle, psutil y rich se fijan
-# según los requisitos embebidos en los snapshots MLflow registrados.
+# Las versiones de numpy, pandas, skops, cloudpickle, psutil y rich se fijan
+# según los requisitos embebidos en los snapshots MLflow registrados. MLflow va en
+# 3.17.2 (parche de 3.17.1, la versión del snapshot) por CVE-2026-53995 (pip-audit).
 numpy==2.5.4
 pandas==3.0.6
 scikit-learn==1.9.1
 scipy==1.18.1
-mlflow==3.17.1
+mlflow==3.17.2
 skops==0.16.0
 psutil==7.2.2
 rich==15.0.0

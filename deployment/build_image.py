@@ -33,7 +33,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--engine', choices=['podman', 'docker'], default='podman')
     parser.add_argument('--tag', default='mibici-equipo19-api:1.0')
-    parser.add_argument('--no-cache', action='store_true', default=True)
+    # Sin caché por defecto; --cache la reactiva (antes store_true con default=True no se podía apagar).
+    parser.add_argument('--no-cache', dest='no_cache', action='store_true', default=True,
+                        help='Construir sin caché (por defecto).')
+    parser.add_argument('--cache', dest='no_cache', action='store_false',
+                        help='Reutilizar la caché de capas del motor.')
     args = parser.parse_args()
 
     source_models = ROOT / 'deployment' / 'model_store'
