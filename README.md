@@ -1092,8 +1092,26 @@ requirements-serving.txt          # Dependencias reducidas de inferencia
 
 La implementación de monitoreo de **P1 (demanda diaria)** mediante Evidently 0.7 y la comparación A/B offline de dos versiones del mismo modelo registrado en MLflow se documenta en [`docs/entregable8/README.md`](docs/entregable8/README.md).
 
+Instrucciones para corrida de revisión de drift y A/B testing (P1):
+
+1. Restaurar antes los Parquet históricos y de 2026 en `data/processed`.
+
+2. Levantar el servidor MLflow conectado a Supabase (Consola 1):
+
+```powershell
+# Cargar credenciales del archivo .env
+Get-Content .env | Where-Object { \$_ -match '^\s*[A-Za-z0-9_]+=' } | ForEach-Object { $k,$v = $_ -split '=', 2; Set-Item -Path "Env:$($k.Trim())" -Value $v.Trim().Trim('"') }
+
+# Iniciar servidor (con python -m para evitar bloqueos de Windows y 1 worker para estabilidad)
+python -m mlflow server --backend-store-uri \$env:DATABASE_URL --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 127.0.0.1 --port 5000 --disable-security-middleware --workers 1
+
+3. Correr las pruebas y entrenamiento del modelo para A/B testing (Consola 2)
+
 ```powershell
 python -m pip install -r requirements-monitoring.txt
+
+\$env:MLFLOW_TRACKING_URI = "[http://127.0.0.1:5000](http://127.0.0.1:5000)"
+
 python -m tc5061_proyecto_equipo19.monitoring drift
 python -m tc5061_proyecto_equipo19.monitoring train --alpha 10
 python -m tc5061_proyecto_equipo19.monitoring ab
