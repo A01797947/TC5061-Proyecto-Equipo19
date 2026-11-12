@@ -1,0 +1,35 @@
+{
+  "test_design": "A/B offline retrospectivo, misma muestra pareada, sin asignación online",
+  "model_name": "mibici-equipo19-p1-demanda",
+  "base_version": "1",
+  "candidate_version": "2",
+  "n_rows": 13974,
+  "period": [
+    "2026_09"
+  ],
+  "baseline": {
+    "mae": 15.379185693984727,
+    "rmse": 22.556136178759637,
+    "r2": 0.6789858822879706
+  },
+  "candidate": {
+    "mae": 11.90495146334622,
+    "rmse": 19.909504067673314,
+    "r2": 0.749898900499967
+  },
+  "bootstrap": {
+    "delta_mae": -3.474234230638507,
+    "ci95_lower": -3.746059800323788,
+    "ci95_upper": -3.186042026318545,
+    "n_days": 30,
+    "replicas": 2000,
+    "bootstrap_seed": 42
+  },
+  "relative_mae_improvement": 0.22590495360215246,
+  "min_relative_improvement": 0.02,
+  "recommendation": "candidate",
+  "reason": "Mejora en MAE >= umbral, IC95% de diferencia de MAE por día < 0 y RMSE sin degradación.",
+  "champion_modified": false,
+  "holdout_data_version": "af23183518493c10",
+  "mlflow_ab_run_id": "09cb66f30f6e4e4da6adefb3a1694e41"
+}

@@ -119,3 +119,16 @@ security:
 
 deepchecks:
 	$(PYTHON_INTERPRETER) -m pytest tests/test_deepchecks.py -q
+
+# Entregable 8 (el alias champion NO se cambia automáticamente)
+.PHONY: monitoring-drift monitoring-train monitoring-ab monitoring-report monitoring-all
+monitoring-drift:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.monitoring drift
+monitoring-train:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.monitoring train
+monitoring-ab:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.monitoring ab
+monitoring-report:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.monitoring report
+monitoring-all:
+	$(PYTHON_INTERPRETER) -m tc5061_proyecto_equipo19.monitoring all

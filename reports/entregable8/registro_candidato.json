@@ -1,0 +1,13 @@
+{
+  "model_name": "mibici-equipo19-p1-demanda",
+  "base_version": "1",
+  "candidate_version": "2",
+  "candidate_alias": "candidate_e8",
+  "run_id": "93d508c48ae94c79af7bbc82e7e9c9c0",
+  "train_rows": 225320,
+  "train_data_version": "09f5def4d8d94d4a",
+  "holdout": [
+    "2026_09"
+  ],
+  "champion_unchanged": true
+}

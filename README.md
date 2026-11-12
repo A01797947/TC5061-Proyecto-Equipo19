@@ -1085,3 +1085,19 @@ requirements-serving.txt          # Dependencias reducidas de inferencia
 
 **Nota de portabilidad:** Docker funciona también sustituyendo `podman` por
 `docker` en los comandos `build`, `run`, `ps`, `logs`, `stop` y `rm`.
+
+---
+
+## Entregable 8 — Drift y A/B testing (P1)
+
+La implementación de monitoreo de **P1 (demanda diaria)** mediante Evidently 0.7 y la comparación A/B offline de dos versiones del mismo modelo registrado en MLflow se documenta en [`docs/entregable8/README.md`](docs/entregable8/README.md).
+
+```powershell
+python -m pip install -r requirements-monitoring.txt
+python -m tc5061_proyecto_equipo19.monitoring drift
+python -m tc5061_proyecto_equipo19.monitoring train --alpha 10
+python -m tc5061_proyecto_equipo19.monitoring ab
+python -m tc5061_proyecto_equipo19.monitoring report
+```
+
+Restaurar antes los Parquet históricos y de 2026. **Ningún paso mueve automáticamente el alias `champion`.**

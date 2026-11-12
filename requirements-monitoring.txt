@@ -1,0 +1,7 @@
+# Instalar después de requirements.txt (ambiente MiBici: Python 3.14).
+# Pydantic >=2.13 incluye pydantic.v1 con compatibilidad para Python 3.14.
+# Evidently 0.7 evita la API legacy 0.4: report.run(current, reference).
+evidently==0.7.23
+python-docx==1.2.0
+# Mantener coherencia con requirements.txt y requirements-serving.txt
+pydantic==2.13.5
