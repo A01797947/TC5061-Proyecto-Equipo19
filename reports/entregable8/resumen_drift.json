@@ -1,0 +1,35 @@
+{
+  "reference_rows": 33032,
+  "current_rows": 41611,
+  "sample_reference": 10000,
+  "sample_current": 10000,
+  "method": "jensenshannon",
+  "threshold": 0.1,
+  "seed": 42,
+  "max_rows": 10000,
+  "drifted_columns": 2,
+  "drift_share": 0.3333333333333333,
+  "dataset_drift": false,
+  "actionable_drift_variables": [
+    "origin_station_id"
+  ],
+  "actionable_input_features": [
+    "origin_station_id"
+  ],
+  "target_drift": false,
+  "notas": [
+    "Año cambia por diseño: su drift no se interpreta como degradación por sí solo.",
+    "La muestra es uniforme por fila estación/día y no representa estaciones sin viajes.",
+    "Cambios en variables explicativas no demuestran caída de desempeño; validar A/B."
+  ],
+  "reference_months": [
+    "2024_07",
+    "2024_08",
+    "2024_09"
+  ],
+  "current_months": [
+    "2026_07",
+    "2026_08",
+    "2026_09"
+  ]
+}

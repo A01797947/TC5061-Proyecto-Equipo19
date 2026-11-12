@@ -1,0 +1,137 @@
+{
+  "question": "p1",
+  "model_name": "mibici-equipo19-p1-demanda",
+  "candidate_model_family": "ridge",
+  "ridge_alpha": 10.0,
+  "train_months": [
+    "2024_01",
+    "2024_02",
+    "2024_03",
+    "2024_04",
+    "2024_05",
+    "2024_06",
+    "2024_07",
+    "2024_08",
+    "2024_09",
+    "2024_10",
+    "2024_11",
+    "2024_12",
+    "2025_01",
+    "2025_02",
+    "2025_03",
+    "2025_04",
+    "2025_05",
+    "2025_06",
+    "2026_07",
+    "2026_08"
+  ],
+  "excluded_holdout_months": [
+    "2026_09"
+  ],
+  "reference_champion_version": "1",
+  "training_rows": 225320,
+  "new_data_version": "09f5def4d8d94d4a",
+  "files": [
+    {
+      "month": "2024_01",
+      "sha256": "d5316ef863243b0c66c6fb154938c79f0b72e204d3842210c7dbb0bc0e5517d6",
+      "bytes": 8237596
+    },
+    {
+      "month": "2024_02",
+      "sha256": "4e00e1910929110abca055c04e891db9d10ac36abc079f08c6ae762d14ff50d6",
+      "bytes": 8072279
+    },
+    {
+      "month": "2024_03",
+      "sha256": "264a88111b7c32aa255bec097694d2efb1d826a091f1cb9eb38987cce4f59336",
+      "bytes": 8231151
+    },
+    {
+      "month": "2024_04",
+      "sha256": "114b4589c75b17122a4545fea282afc2bed9dd05650050922d7d88fb15fc9a23",
+      "bytes": 8502178
+    },
+    {
+      "month": "2024_05",
+      "sha256": "af24f111d7c9ee8a5e06188d750a649ac3158845cc2adf576fb1f0cd69bf30cf",
+      "bytes": 8612680
+    },
+    {
+      "month": "2024_06",
+      "sha256": "0c539f7d032fcad72c66d7b77eb0dfc9935de73a7e450d17acc8b2c025f31d5e",
+      "bytes": 7769494
+    },
+    {
+      "month": "2024_07",
+      "sha256": "28566dcfec000a4e054914d098be4773075c97126b8ff89db9f98efcbef76c9a",
+      "bytes": 7768544
+    },
+    {
+      "month": "2024_08",
+      "sha256": "8ca9106e5f9a9519346d45a9f018a539deda998b34477a83fae9c6e576561e2e",
+      "bytes": 8329729
+    },
+    {
+      "month": "2024_09",
+      "sha256": "ff18baf49579255f5fb1d027f063d5eae9bd0ee528474e03e4ff2db961979344",
+      "bytes": 4245297
+    },
+    {
+      "month": "2024_10",
+      "sha256": "1485f0d35533c0dcc7dda342dc93b505cedfa04971a58d38fb71ba24df5cdf96",
+      "bytes": 4521680
+    },
+    {
+      "month": "2024_11",
+      "sha256": "b516e3a12a7dfe93706b5e3d9c8b3cb19947fa1b772d7ff6b07f125107be0abb",
+      "bytes": 8245584
+    },
+    {
+      "month": "2024_12",
+      "sha256": "e2d39a004cbd715df26d5b7d02565dd750018679aa69c2be81855c4e7db5a013",
+      "bytes": 7325731
+    },
+    {
+      "month": "2025_01",
+      "sha256": "d7bf7468e8b8438894e66f6224eb1cfe7f23de9ec072aadc1477b7d203d8ecde",
+      "bytes": 8048646
+    },
+    {
+      "month": "2025_02",
+      "sha256": "4d176a9999fc3545b45cd8dc72ea13b12bb327f9b3945e2f090bacaf027ebb5b",
+      "bytes": 7884173
+    },
+    {
+      "month": "2025_03",
+      "sha256": "67c685ce739e819668842b537d16c539770402fbe8319e28b0c13d916928cd70",
+      "bytes": 8516978
+    },
+    {
+      "month": "2025_04",
+      "sha256": "7f2337d454955ff06430c6be90ef56dcacf4e95c68b560110862c42b9336ab8f",
+      "bytes": 7800012
+    },
+    {
+      "month": "2025_05",
+      "sha256": "f66876f9d3a7b19d40a115fb64b2b6fa1fc71ea7e151edf1e8887317e925f243",
+      "bytes": 8362624
+    },
+    {
+      "month": "2025_06",
+      "sha256": "f8ea41b8d713f8b0891a74ccdef3ca3f8d245617cd20e25a4448ac6d0feef5e2",
+      "bytes": 7622910
+    },
+    {
+      "month": "2026_07",
+      "sha256": "45d9cc59be4caac4b220df1c980f21d68f9acfb7b0e61881ccf779de251c953b",
+      "bytes": 7801386
+    },
+    {
+      "month": "2026_08",
+      "sha256": "bc1fcec58660edbaa615157d69b8fd2ea1034b3db585ebb7de2e8b3a23c6f4cf",
+      "bytes": 7888054
+    }
+  ],
+  "seed": 42
+}
