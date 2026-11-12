@@ -77,7 +77,13 @@ def main(argv: list[str] | None = None):
             args.out, base_version=args.base_version,
             candidate_version=args.candidate_version, processed_dir=args.processed_dir,
         )
-        print("Decisión A/B:", result["recommendation"], "(no cambia champion)")
+
+        rec = result["recommendation"]
+        if rec == "candidate":
+            print(f"Decisión A/B: RECOMENDACIÓN: {rec} (El candidato superó estadísticamente al champion, pero el alias en Registry no se movió automáticamente por seguridad)")
+        else:
+            print(f"Decisión A/B: RECOMENDACIÓN: {rec} (No hubo mejora suficiente; se mantiene el champion actual)")
+
     if args.command in ("report", "all"):
         from tc5061_proyecto_equipo19.monitoring.report import generate_report
         generated = generate_report(args.out)

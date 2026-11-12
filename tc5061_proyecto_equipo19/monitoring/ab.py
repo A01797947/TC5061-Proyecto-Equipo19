@@ -25,11 +25,15 @@ CANDIDATE_ALIAS = "candidate_e8"
 
 
 def _client():
+    import os
     import mlflow
     from mlflow import MlflowClient
 
-    mlflow.set_tracking_uri(cfg.MLFLOW_TRACKING_URI)
-    return MlflowClient(tracking_uri=cfg.MLFLOW_TRACKING_URI)
+    # Prioriza la variable de entorno del sistema, luego config.py, y finalmente el servidor local
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI") or getattr(cfg, "MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
+
+    mlflow.set_tracking_uri(tracking_uri)
+    return MlflowClient(tracking_uri=tracking_uri)
 
 
 def train_candidate(out: Path, alpha: float = 10.0, processed_dir: Path | None = None) -> dict:
