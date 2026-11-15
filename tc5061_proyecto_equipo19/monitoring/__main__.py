@@ -30,7 +30,7 @@ def prepare_raw(months: tuple[str, ...]):
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["prepare-raw", "drift", "train", "ab", "report", "all", "promote",
-                                            "segments"])
+                                            "segments", "ablation"])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--processed-dir", type=Path, default=cfg.PROCESSED_DATA_DIR)
     parser.add_argument("--reference", default=",".join(REFERENCE_MONTHS))
@@ -65,6 +65,14 @@ def main(argv: list[str] | None = None):
         print("Estaciones nuevas para A:", summary["estaciones_nuevas_para_A"],
               "| filas afectadas:", f"{summary['proporcion_filas_en_estaciones_nuevas_para_A']:.1%}",
               "| estaciones donde B empeora:", summary["estaciones_donde_B_empeora"])
+        print("Resultados en:", args.out)
+        return
+    if args.command == "ablation":
+        from tc5061_proyecto_equipo19.monitoring.ablation import run_ablation
+        result = run_ablation(args.out, alpha=args.alpha, processed_dir=args.processed_dir)
+        for name, m in result["metricas"].items():
+            print(f"{name}: MAE {m['mae']:.3f} | RMSE {m['rmse']:.3f} | R2 {m['r2']:.3f}")
+        print(result["interpretacion"])
         print("Resultados en:", args.out)
         return
     if args.command in ("drift", "all"):
