@@ -1090,27 +1090,49 @@ requirements-serving.txt          # Dependencias reducidas de inferencia
 
 ## Entregable 8 — Drift y A/B testing (P1)
 
-La implementación de monitoreo de **P1 (demanda diaria)** mediante Evidently 0.7 y la comparación A/B offline de dos versiones del mismo modelo registrado en MLflow se documenta en [`docs/entregable8/README.md`](docs/entregable8/README.md).
+La implementación de monitoreo de **P1 (demanda diaria)** mediante Evidently 0.7 y la comparación A/B offline de dos versiones del mismo modelo registrado en MLflow se documenta en [`docs/README.md`](docs/README.md). El informe y las evidencias generadas están en [`reports/entregable8/`](reports/entregable8/).
 
 Instrucciones para corrida de revisión de drift y A/B testing (P1):
 
-1. Restaurar antes los Parquet históricos y de 2026 en `data/processed`.
+1. Restaurar los Parquet históricos (2024-01 a 2025-06) en `data/processed` y descargar los meses de 2026 que usa el monitoreo (julio a septiembre). La descarga es aditiva: no borra los meses que ya existen.
 
-2. Levantar el servidor MLflow conectado a Supabase (Consola 1):
+```bash
+python -m tc5061_proyecto_equipo19.monitoring.descargar_2026
+```
+
+Si ya tienes los CSV de 2026 en `data/raw/`, conviértelos sin descargar:
+
+```bash
+python -m tc5061_proyecto_equipo19.monitoring prepare-raw --months 2026_07,2026_08,2026_09
+```
+
+2. Levantar el servidor MLflow conectado a Supabase (consola 1). Requiere el `.env` del equipo en la raíz del repositorio.
+
+macOS o Linux:
+
+```bash
+set -a; source .env; set +a
+python -m mlflow server --backend-store-uri "$DATABASE_URL" --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 127.0.0.1 --port 5000 --workers 1
+```
+
+Windows PowerShell (`python -m` evita bloqueos de Windows y un solo worker da estabilidad):
 
 ```powershell
-# Cargar credenciales del archivo .env
-Get-Content .env | Where-Object { \$_ -match '^\s*[A-Za-z0-9_]+=' } | ForEach-Object { $k,$v = $_ -split '=', 2; Set-Item -Path "Env:$($k.Trim())" -Value $v.Trim().Trim('"') }
+Get-Content .env | Where-Object { $_ -match '^\s*[A-Za-z0-9_]+=' } | ForEach-Object {
+    $k, $v = $_ -split '=', 2
+    Set-Item -Path "Env:$($k.Trim())" -Value $v.Trim().Trim('"')
+}
+python -m mlflow server --backend-store-uri $env:DATABASE_URL --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 127.0.0.1 --port 5000 --disable-security-middleware --workers 1
+```
 
-# Iniciar servidor (con python -m para evitar bloqueos de Windows y 1 worker para estabilidad)
-python -m mlflow server --backend-store-uri \$env:DATABASE_URL --artifacts-destination "s3://mlflow-artifacts" --serve-artifacts --host 127.0.0.1 --port 5000 --disable-security-middleware --workers 1
+3. Correr el drift, el entrenamiento del candidato, el A/B y el informe (consola 2).
 
-3. Correr las pruebas y entrenamiento del modelo para A/B testing (Consola 2)
+macOS o Linux:
 
-```powershell
+```bash
 python -m pip install -r requirements-monitoring.txt
-
-\$env:MLFLOW_TRACKING_URI = "[http://127.0.0.1:5000](http://127.0.0.1:5000)"
+set -a; source .env; set +a
+export MLFLOW_TRACKING_URI="http://127.0.0.1:5000"
 
 python -m tc5061_proyecto_equipo19.monitoring drift
 python -m tc5061_proyecto_equipo19.monitoring train --alpha 10
@@ -1118,4 +1140,16 @@ python -m tc5061_proyecto_equipo19.monitoring ab
 python -m tc5061_proyecto_equipo19.monitoring report
 ```
 
-Restaurar antes los Parquet históricos y de 2026. **Ningún paso mueve automáticamente el alias `champion`.**
+Windows PowerShell (carga el `.env` igual que en la consola 1):
+
+```powershell
+python -m pip install -r requirements-monitoring.txt
+$env:MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
+
+python -m tc5061_proyecto_equipo19.monitoring drift
+python -m tc5061_proyecto_equipo19.monitoring train --alpha 10
+python -m tc5061_proyecto_equipo19.monitoring ab
+python -m tc5061_proyecto_equipo19.monitoring report
+```
+
+**Ningún paso mueve automáticamente el alias `champion`.** Para promover el candidato después de revisar el A/B: `python -m tc5061_proyecto_equipo19.monitoring promote --approve`.
