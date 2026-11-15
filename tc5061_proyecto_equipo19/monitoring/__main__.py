@@ -29,7 +29,8 @@ def prepare_raw(months: tuple[str, ...]):
 
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["prepare-raw", "drift", "train", "ab", "report", "all", "promote"])
+    parser.add_argument("command", choices=["prepare-raw", "drift", "train", "ab", "report", "all", "promote",
+                                            "segments"])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--processed-dir", type=Path, default=cfg.PROCESSED_DATA_DIR)
     parser.add_argument("--reference", default=",".join(REFERENCE_MONTHS))
@@ -52,6 +53,19 @@ def main(argv: list[str] | None = None):
     if args.command == "promote":
         from tc5061_proyecto_equipo19.monitoring.ab import promote_with_approval
         print("Champion promovido a versión:", promote_with_approval(args.out, approve=args.approve))
+        return
+    if args.command == "segments":
+        import pandas as pd
+
+        from tc5061_proyecto_equipo19.monitoring.segments import generate_segments
+        summary = generate_segments(args.out, processed_dir=args.processed_dir)
+        table = pd.read_csv(args.out / "segmentos_ab.csv")
+        print(table[["segmento", "grupo", "n_filas", "mae_a", "mae_b", "mejora_relativa"]]
+              .to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+        print("Estaciones nuevas para A:", summary["estaciones_nuevas_para_A"],
+              "| filas afectadas:", f"{summary['proporcion_filas_en_estaciones_nuevas_para_A']:.1%}",
+              "| estaciones donde B empeora:", summary["estaciones_donde_B_empeora"])
+        print("Resultados en:", args.out)
         return
     if args.command in ("drift", "all"):
         from tc5061_proyecto_equipo19.monitoring.drift import generate_drift
