@@ -33,6 +33,8 @@ jobs:
         run: python -m pip_audit -r requirements.txt
       - name: pip-audit de requirements-serving.txt (imagen de la API)
         run: python -m pip_audit -r requirements-serving.txt
+      - name: pip-audit de requirements-monitoring.txt (Evidently y monitoreo)
+        run: python -m pip_audit -r requirements-monitoring.txt
 
   deepchecks:
     name: DeepChecks P1/P2/P3 con datos sintéticos (Python 3.10)
