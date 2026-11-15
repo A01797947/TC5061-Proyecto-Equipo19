@@ -79,10 +79,20 @@ def main(argv: list[str] | None = None):
         )
 
         rec = result["recommendation"]
+        boot = result["bootstrap"]
+        print(
+            f"Decisión A/B: {rec} | mejora relativa de MAE: "
+            f"{result['relative_mae_improvement']:.1%} | "
+            f"MAE (B-A) IC95%: [{boot['ci95_lower']:.3f}, {boot['ci95_upper']:.3f}]"
+        )
         if rec == "candidate":
-            print(f"Decisión A/B: RECOMENDACIÓN: {rec} (El candidato superó estadísticamente al champion, pero el alias en Registry no se movió automáticamente por seguridad)")
+            print(
+                "  El candidato supera al champion (IC95% < 0, mejora >= umbral y RMSE sin "
+                "degradación). El alias champion NO se movió; para promoverlo usa "
+                "`monitoring promote --approve`."
+            )
         else:
-            print(f"Decisión A/B: RECOMENDACIÓN: {rec} (No hubo mejora suficiente; se mantiene el champion actual)")
+            print("  No hay evidencia suficiente de mejora; se mantiene el champion actual.")
 
     if args.command in ("report", "all"):
         from tc5061_proyecto_equipo19.monitoring.report import generate_report
