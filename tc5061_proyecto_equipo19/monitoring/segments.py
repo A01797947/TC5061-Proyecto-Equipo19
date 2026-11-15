@@ -10,8 +10,8 @@ meses más ``CANDIDATE_RECENT_MONTHS`` (mismo diseño que ``ab.train_candidate``
 from __future__ import annotations
 
 import json
-import textwrap
 from pathlib import Path
+import textwrap
 
 import numpy as np
 import pandas as pd
