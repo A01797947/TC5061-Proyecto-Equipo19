@@ -6,6 +6,7 @@ La prueba es histórica, NO un despliegue A/B online aleatorizado.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -25,13 +26,12 @@ CANDIDATE_ALIAS = "candidate_e8"
 
 
 def _client():
-    import os
     import mlflow
     from mlflow import MlflowClient
 
-    # Prioriza la variable de entorno del sistema, luego config.py, y finalmente el servidor local
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI") or getattr(cfg, "MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
-
+    # La variable de entorno tiene prioridad; si no existe, config.py aplica su valor
+    # por defecto (SQLite local), que ya lee MLFLOW_TRACKING_URI al importarse.
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI") or cfg.MLFLOW_TRACKING_URI
     mlflow.set_tracking_uri(tracking_uri)
     return MlflowClient(tracking_uri=tracking_uri)
 

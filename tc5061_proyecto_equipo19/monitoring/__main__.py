@@ -29,7 +29,8 @@ def prepare_raw(months: tuple[str, ...]):
 
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["prepare-raw", "drift", "train", "ab", "report", "all", "promote"])
+    parser.add_argument("command", choices=["prepare-raw", "drift", "train", "ab", "report", "all", "promote",
+                                            "segments", "ablation"])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--processed-dir", type=Path, default=cfg.PROCESSED_DATA_DIR)
     parser.add_argument("--reference", default=",".join(REFERENCE_MONTHS))
@@ -52,6 +53,27 @@ def main(argv: list[str] | None = None):
     if args.command == "promote":
         from tc5061_proyecto_equipo19.monitoring.ab import promote_with_approval
         print("Champion promovido a versión:", promote_with_approval(args.out, approve=args.approve))
+        return
+    if args.command == "segments":
+        import pandas as pd
+
+        from tc5061_proyecto_equipo19.monitoring.segments import generate_segments
+        summary = generate_segments(args.out, processed_dir=args.processed_dir)
+        table = pd.read_csv(args.out / "segmentos_ab.csv")
+        print(table[["segmento", "grupo", "n_filas", "mae_a", "mae_b", "mejora_relativa"]]
+              .to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+        print("Estaciones nuevas para A:", summary["estaciones_nuevas_para_A"],
+              "| filas afectadas:", f"{summary['proporcion_filas_en_estaciones_nuevas_para_A']:.1%}",
+              "| estaciones donde B empeora:", summary["estaciones_donde_B_empeora"])
+        print("Resultados en:", args.out)
+        return
+    if args.command == "ablation":
+        from tc5061_proyecto_equipo19.monitoring.ablation import run_ablation
+        result = run_ablation(args.out, alpha=args.alpha, processed_dir=args.processed_dir)
+        for name, m in result["metricas"].items():
+            print(f"{name}: MAE {m['mae']:.3f} | RMSE {m['rmse']:.3f} | R2 {m['r2']:.3f}")
+        print(result["interpretacion"])
+        print("Resultados en:", args.out)
         return
     if args.command in ("drift", "all"):
         from tc5061_proyecto_equipo19.monitoring.drift import generate_drift
@@ -79,10 +101,20 @@ def main(argv: list[str] | None = None):
         )
 
         rec = result["recommendation"]
+        boot = result["bootstrap"]
+        print(
+            f"Decisión A/B: {rec} | mejora relativa de MAE: "
+            f"{result['relative_mae_improvement']:.1%} | "
+            f"MAE (B-A) IC95%: [{boot['ci95_lower']:.3f}, {boot['ci95_upper']:.3f}]"
+        )
         if rec == "candidate":
-            print(f"Decisión A/B: RECOMENDACIÓN: {rec} (El candidato superó estadísticamente al champion, pero el alias en Registry no se movió automáticamente por seguridad)")
+            print(
+                "  El candidato supera al champion (IC95% < 0, mejora >= umbral y RMSE sin "
+                "degradación). El alias champion NO se movió; para promoverlo usa "
+                "`monitoring promote --approve`."
+            )
         else:
-            print(f"Decisión A/B: RECOMENDACIÓN: {rec} (No hubo mejora suficiente; se mantiene el champion actual)")
+            print("  No hay evidencia suficiente de mejora; se mantiene el champion actual.")
 
     if args.command in ("report", "all"):
         from tc5061_proyecto_equipo19.monitoring.report import generate_report
