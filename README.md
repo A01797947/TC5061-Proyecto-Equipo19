@@ -1153,3 +1153,188 @@ python -m tc5061_proyecto_equipo19.monitoring report
 ```
 
 **Ningún paso mueve automáticamente el alias `champion`.** Para promover el candidato después de revisar el A/B: `python -m tc5061_proyecto_equipo19.monitoring promote --approve`.
+
+---
+
+## Entregable 7 — Microservicios, CI/CD, Locust y FinOps (2026-11)
+
+> Se conserva el flujo de exportación/registro de MLflow de entregas previas.
+> Esta sección permite operar los modelos ya exportados **sin descargar datos de viajes**.
+> Detalle académico y limitaciones: [`reports/entregable7/INFORME_ENTREGABLE7.md`](reports/entregable7/INFORME_ENTREGABLE7.md).
+
+### 1. Requisitos previos
+
+- Docker Desktop con `docker compose` instalado **o** Podman + `podman compose`/`podman-compose`.
+- Modelos P1, P2 y P3 íntegros bajo `deployment/model_store/` (se incluyen en la imagen).
+  El manifiesto `manifest.json` contiene nombres, versiones, alias `champion` y SHA-256.
+- Python 3.14 para ejecutar scripts de monitoreo y generar gráficas. Ejecutar
+  `python -m pip install -r requirements.txt` en el entorno local del proyecto;
+  no se necesitan CSV/Parquet para serving ni para pruebas de carga.
+- Evita crear un contenedor viejo llamado `mibici-api` escuchando en el mismo puerto 8000.
+  Si está presente, detén/elimina ese contenedor antes de ejecutar Compose.
+
+**Importante para GitHub Actions:** `deployment/model_store/` estaba ignorada por Git.
+El Entregable 7 habilita su versionado, ya que el build de CI debe disponer de los
+3 snapshots. Tras aplicar estos cambios, incluir en el commit los archivos
+`manifest.json`, `p1/`, `p2/`, `p3/` y `p3_ejemplo_peticion.json`; no subir
+`data/`, `mlartifacts/`, `mlruns/`, `mlflow.db` ni `.env`.
+
+### 2. Arranque local con Podman (Windows/PowerShell) — validado por el equipo
+
+Se utiliza **Podman** como motor y `podman compose` como proveedor Compose. En Windows,
+`podman compose` puede mostrar `Executing external compose provider ...docker-compose.exe`:
+**es normal**, porque el cliente Compose envía las operaciones al motor Podman.
+No es necesario iniciar Docker Desktop. Si el proveedor no está instalado, instalar
+un proveedor Compose compatible antes de continuar.
+
+Desde la raíz del repositorio (entorno `mlops_tec` activo):
+
+```powershell
+python -m pip install -r requirements.txt
+podman machine start  # Si ya está iniciada, continuar
+podman info
+python -m deployment.verify_snapshot
+podman compose up -d --build
+podman compose ps
+podman compose logs api --tail=100
+podman compose logs mlflow --tail=50
+python -m deployment.smoke_test
+```
+
+**Verificación:** `/health` devolvió `status=ok`
+para las versiones P1/P2/P3 y las tres rutas POST devolvieron predicciones.
+La API indicó `Application startup complete`; quedaron advertencias de versiones
+de paquetes entrenados frente a los del contenedor. Alinear dependencias y ejecutar
+un smoke test en CI sigue siendo importante. **Podman Compose + FastAPI + MLflow
+fueron comprobados localmente; el pipeline remoto y Locust aún requieren evidencias.**
+
+Rutas: [health](http://127.0.0.1:8000/health), [Swagger](http://127.0.0.1:8000/docs),
+[MLflow](http://127.0.0.1:5000). Los puertos se publican solo en loopback;
+la API usa snapshots y no consulta MLflow durante cada inferencia.
+
+**¿Para qué sirve `orchestration/compose.supabase.yml`?** Es un *override
+opcional* del servicio `mlflow`: reemplaza la base SQLite y el directorio de
+artefactos locales por PostgreSQL y almacenamiento S3-compatible de Supabase.
+Se usa **únicamente** cuando se desea consultar el tracking/Registry histórico del
+equipo con credenciales privadas. **No** se necesita para API, smoke test,
+Locust, CI ni FinOps local. El archivo no contiene claves; exige un `.env` local
+con `DATABASE_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y
+`MLFLOW_S3_ENDPOINT_URL` (y opcionalmente `AWS_DEFAULT_REGION`). La referencia
+`MLFLOW_ARTIFACTS_DESTINATION=s3://mlflow-artifacts` debe coincidir con el bucket
+real. No incluir `.env` ni capturas con credenciales en GitHub.
+
+```powershell
+# Solo si se necesita acceder al Registry remoto:
+podman compose -f docker-compose.yml -f orchestration/compose.supabase.yml config --quiet
+podman compose -f docker-compose.yml -f orchestration/compose.supabase.yml up -d --build
+# Volver al modo SQLite local sin borrar volúmenes:
+podman compose -f docker-compose.yml -f orchestration/compose.supabase.yml down
+podman compose up -d
+# Detener servicios normales, preservando volúmenes:
+podman compose down
+```
+
+**Advertencia:** hacer `up` con el override y el `.env` incorrectos puede conectar
+la instancia a recursos remotos o fallar por falta de permisos. No usar `down -v`;
+elimina volúmenes y puede perder datos de MLflow local. En modo estándar,
+SQLite y los volúmenes son **independientes** del historial de Supabase.
+
+### 3. CI/CD — `.github/workflows/entregable7-cicd.yml`
+
+**En `push`, PR y ejecución manual** se ejecutan las pruebas automatizadas,
+validación de integridad de los snapshots/Compose, build OCI y smoke test contra
+la imagen real. Al hacer `push` sobre `main`, si todo pasa, se publica la imagen
+en `ghcr.io/<owner>/<repo>/mibici-api:latest` y con el tag del SHA de Git.
+Los PR no publican imágenes. El `GITHUB_TOKEN` estándar se utiliza para GHCR;
+se necesita habilitar permisos de escritura de Packages al workflow según
+las políticas del repositorio. Esta etapa es **entrega continua a un registro**,
+no despliegue automático a una VM o ambiente productivo (no se ha configurado destino).
+Los tests `deepchecks` requieren un entorno Python 3.10 aparte, por lo que
+este workflow los excluye con `-m 'not deepchecks'`.
+
+### 4. Locust + CPU/RAM en un único procedimiento
+
+El escenario usa ejemplos reales de la API (`p1.json`, `p2.json`,
+`p3_ejemplo_peticion.json`) y distribuye solicitudes por tareas ponderadas:
+**50% P1 / 30% P2 / 20% P3**. El proceso cliente espera entre 1 y 2 segundos
+entre peticiones. El benchmark inicia Locust en perfil `load` de Compose y muestrea
+CPU y memoria de los contenedores cada cinco segundos mediante `docker stats` o
+`podman stats` (el consumo del cliente Locust no se carga a la VM estimada).
+
+Después de `podman compose up -d --build` y de instalar `requirements.txt`:
+
+```powershell
+# Tres escenarios recomendados para el informe
+python -m load_testing.benchmark --engine podman --run-id baja5 --users 5 --spawn-rate 1 --duration 120
+python -m load_testing.benchmark --engine podman --run-id media20 --users 20 --spawn-rate 4 --duration 120
+python -m load_testing.benchmark --engine podman --run-id alta50 --users 50 --spawn-rate 5 --duration 180
+
+# En Docker Desktop puedes usar --engine docker. Para este equipo utilizar --engine podman.
+# Ver resultados y tablas por corrida:
+# reports/entregable7/baja5_resumen.md
+# reports/entregable7/baja5_locust.html
+```
+
+Se generan, para cada `run-id`: HTML/CSV Locust, `*_recursos.csv`,
+`*_resumen.md`, `*_resumen.json` y **tres gráficas PNG** (latencia, RPS/errores,
+CPU/memoria). Si el reporte falla, consultar `*_recursos_errores.log`.
+No mezclar pruebas en paralelo: comparten contenedores y pueden distorsionar resultados.
+Verificar el archivo `*_recursos_errores.log`; si hay errores, no interpretar
+CPU/RAM como medición válida antes de solucionar el muestreo.
+
+Con los tres escenarios terminados, generar el reporte comparativo final:
+
+```powershell
+python -m load_testing.consolidate --runs baja5 media20 alta50
+```
+
+Publicar como evidencia `reports/entregable7/RESUMEN_COMPARATIVO.md`, las tres
+carpetas lógicas de artefactos por prefijo (HTML, CSV, gráficas y resúmenes),
+y las capturas de `podman compose ps` y `GitHub Actions`. Los resultados se
+versionan con Git; no se deben inventar cifras si no se han ejecutado pruebas.
+Evitar cambiar configuración de CPU/RAM entre las corridas comparadas.
+
+### 5. Análisis FinOps
+
+El reporte estima el costo **hipotético** de usar AWS EC2 `t3.large` Linux
+on-demand, región `us-east-1` a **USD 0.0835/h** (referencia:
+https://aws.amazon.com/ec2/instance-types/t3/). Para un test de `T` segundos
+con `S` inferencias exitosas, el costo estimado por inferencia es:
+
+```
+Costo por inferencia exitosa (USD) = (0.0835 × T / 3600) / S
+```
+
+Se incluye todo el costo fijo de una VM para API + MLflow, no solo CPU efectivamente
+usada. Se trata de una **proyección**, no de un cobro real ni de throughput validado
+en EC2. No incorpora otros servicios, almacenamiento, red, créditos de CPU, impuestos
+ni costos de Supabase. Para evaluar alternativas, repetir pruebas y variar
+`--hourly-usd` en el script de benchmark (precio de referencia verificable).
+
+### 6. Evidencias
+
+El archivo [`reports/entregable7/INFORME_ENTREGABLE7.md`](reports/entregable7/INFORME_ENTREGABLE7.md)
+contiene arquitectura, metodología, tabla para completar y límites de FinOps.
+Adjuntar después las mediciones reales y gráficos de al menos tres escenarios,
+capturas de `compose ps`, health y MLflow, así como Actions exitosas.
+**Los resultados no se pueden generar honestamente sin ejecutar los contenedores**
+en el entorno donde se tomará la evidencia.
+
+### 7. Comandos de Git
+
+```powershell
+# Revisar que se agreguen los snapshots P1/P2/P3 corregidos (incluidos MLmodel y manifest).
+python -m deployment.verify_snapshot
+git status
+git add README.md .gitignore .github/workflows/entregable7-cicd.yml docker-compose.yml orchestration load_testing tests reports/entregable7 deployment/model_store
+# Comprobar tamaños y que NO se incluyeron credenciales ni data cruda.
+git diff --cached --stat
+git diff --cached --name-only
+# Crear commit y push a rama de trabajo; abrir PR contra main.
+# git commit -m "MLOps: documentar Podman y evidencias de carga FinOps"
+# git push -u origin <tu-rama>
+```
+
+**La publicación en GHCR no constituye un despliegue automático** a un servidor externo.
+Se requiere una URL comprobable del repositorio y una ejecución verde del workflow
+para cumplir literalmente las especificaciones de entrega.

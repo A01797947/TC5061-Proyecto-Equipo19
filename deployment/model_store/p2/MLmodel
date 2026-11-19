@@ -1,0 +1,53 @@
+artifact_path: file:///D:/00%20Clases/TEC%20Monterrey/Cursos/4to%20Trimestre/Operaciones%20de%20aprendizaje%20autom%C3%A1tico/Tareas/Proyecto%20MiBici/TC5061-Proyecto-Equipo19/mlartifacts/models/m-52f68f879c024e8e8c5353f3d89cd2c7/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.7
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.1
+    skops_trusted_types:
+    - numpy.dtype
+    - sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor
+is_signature_from_type_hint: false
+mlflow_version: 3.16.1
+model_id: m-52f68f879c024e8e8c5353f3d89cd2c7
+model_size_bytes: 3301385
+model_uuid: m-52f68f879c024e8e8c5353f3d89cd2c7
+prompts: null
+run_id: 05afe261554d40e1a4ca960b341305cb
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "integer", "name": "hora", "required": true}, {"type": "integer",
+    "name": "dia_semana", "required": true}, {"type": "integer", "name": "fin_de_semana",
+    "required": true}, {"type": "integer", "name": "feriado", "required": true}, {"type":
+    "integer", "name": "mes", "required": true}, {"type": "float", "name": "hora_sin",
+    "required": true}, {"type": "float", "name": "hora_cos", "required": true}, {"type":
+    "float", "name": "capacidad", "required": true}, {"type": "double", "name": "latitud",
+    "required": true}, {"type": "double", "name": "longitud", "required": true}, {"type":
+    "float", "name": "ocupacion_est_h", "required": true}, {"type": "float", "name":
+    "neto_h", "required": true}, {"type": "float", "name": "neto_h_1", "required":
+    true}, {"type": "float", "name": "neto_ult_3h", "required": true}, {"type": "float",
+    "name": "salidas_h", "required": true}, {"type": "float", "name": "llegadas_h",
+    "required": true}, {"type": "float", "name": "neto_ventana_ayer", "required":
+    true}, {"type": "float", "name": "neto_ventana_semana_pasada", "required": true},
+    {"type": "float", "name": "ocup_min_ventana_semana_pasada", "required": true},
+    {"type": "float", "name": "ocup_max_ventana_semana_pasada", "required": true},
+    {"type": "float", "name": "riesgo_semana_pasada", "required": true}, {"type":
+    "float", "name": "salidas_sistema_h", "required": true}, {"type": "float", "name":
+    "actividad_sistema_vs_semana_pasada", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int8", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-10-22 04:50:37.574055'

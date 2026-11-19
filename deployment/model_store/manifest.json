@@ -1,0 +1,279 @@
+{
+  "format_version": 1,
+  "strategy": "bundled-registry-snapshot",
+  "exported_at_utc": "2026-11-04T03:23:43.053343+00:00",
+  "models": {
+    "p1": {
+      "name": "mibici-equipo19-p1-demanda",
+      "version": "1",
+      "alias": "champion",
+      "signature": [
+        {
+          "name": "Año",
+          "type": "integer"
+        },
+        {
+          "name": "Mes",
+          "type": "integer"
+        },
+        {
+          "name": "Dia",
+          "type": "integer"
+        },
+        {
+          "name": "Dia_semana",
+          "type": "integer"
+        },
+        {
+          "name": "origin_station_id",
+          "type": "string"
+        }
+      ],
+      "sha256": "c7191db061f5257b012b15a650b351de5d4eae5d2b7b5d638f99e7b523bab362"
+    },
+    "p2": {
+      "name": "mibici-equipo19-p2-riesgo",
+      "version": "1",
+      "alias": "champion",
+      "signature": [
+        {
+          "name": "hora",
+          "type": "integer"
+        },
+        {
+          "name": "dia_semana",
+          "type": "integer"
+        },
+        {
+          "name": "fin_de_semana",
+          "type": "integer"
+        },
+        {
+          "name": "feriado",
+          "type": "integer"
+        },
+        {
+          "name": "mes",
+          "type": "integer"
+        },
+        {
+          "name": "hora_sin",
+          "type": "float"
+        },
+        {
+          "name": "hora_cos",
+          "type": "float"
+        },
+        {
+          "name": "capacidad",
+          "type": "float"
+        },
+        {
+          "name": "latitud",
+          "type": "double"
+        },
+        {
+          "name": "longitud",
+          "type": "double"
+        },
+        {
+          "name": "ocupacion_est_h",
+          "type": "float"
+        },
+        {
+          "name": "neto_h",
+          "type": "float"
+        },
+        {
+          "name": "neto_h_1",
+          "type": "float"
+        },
+        {
+          "name": "neto_ult_3h",
+          "type": "float"
+        },
+        {
+          "name": "salidas_h",
+          "type": "float"
+        },
+        {
+          "name": "llegadas_h",
+          "type": "float"
+        },
+        {
+          "name": "neto_ventana_ayer",
+          "type": "float"
+        },
+        {
+          "name": "neto_ventana_semana_pasada",
+          "type": "float"
+        },
+        {
+          "name": "ocup_min_ventana_semana_pasada",
+          "type": "float"
+        },
+        {
+          "name": "ocup_max_ventana_semana_pasada",
+          "type": "float"
+        },
+        {
+          "name": "riesgo_semana_pasada",
+          "type": "float"
+        },
+        {
+          "name": "salidas_sistema_h",
+          "type": "float"
+        },
+        {
+          "name": "actividad_sistema_vs_semana_pasada",
+          "type": "float"
+        }
+      ],
+      "sha256": "bc4fd4b69907939ffe59067ca6757daf85ce0df64c00ac330951fd1e768d512b"
+    },
+    "p3": {
+      "name": "mibici-equipo19-p3-grupos",
+      "version": "1",
+      "alias": "champion",
+      "signature": [
+        {
+          "name": "viajes_iniciados",
+          "type": "double"
+        },
+        {
+          "name": "viajes_finalizados",
+          "type": "double"
+        },
+        {
+          "name": "total_viajes",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_00",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_01",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_02",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_03",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_04",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_05",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_06",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_07",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_08",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_09",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_10",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_11",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_12",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_13",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_14",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_15",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_16",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_17",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_18",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_19",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_20",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_21",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_22",
+          "type": "double"
+        },
+        {
+          "name": "salidas_hora_23",
+          "type": "double"
+        },
+        {
+          "name": "salidas_dia_0",
+          "type": "double"
+        },
+        {
+          "name": "salidas_dia_1",
+          "type": "double"
+        },
+        {
+          "name": "salidas_dia_2",
+          "type": "double"
+        },
+        {
+          "name": "salidas_dia_3",
+          "type": "double"
+        },
+        {
+          "name": "salidas_dia_4",
+          "type": "double"
+        },
+        {
+          "name": "salidas_dia_5",
+          "type": "double"
+        },
+        {
+          "name": "salidas_dia_6",
+          "type": "double"
+        }
+      ],
+      "sha256": "4bc3d4e6ab4f7c90f355c9e524cfa4c2a256ac3bf89a2223793d49958bf9fdfd"
+    }
+  }
+}

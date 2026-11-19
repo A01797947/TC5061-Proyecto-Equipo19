@@ -224,6 +224,10 @@ cython_debug/
 reports/quality/
 security-reports/
 
-# Snapshot generado desde Registry (artefactos grandes, fuera de Git).
-/deployment/model_store/*
-!/deployment/model_store/.gitkeep
+# Entregable 7: snapshots P1/P2/P3 forman parte de la imagen OCI y DEBEN
+# versionarse para que GitHub Actions pueda construirla sin credenciales.
+# Contienen modelos exportados, no datos crudos ni secretos.
+
+# Entregable 7: permitir versionar resultados medidos, gráficas y reporte.
+# Los logs de errores pueden incluir información del equipo: mantenerlos locales.
+/reports/entregable7/*_recursos_errores.log

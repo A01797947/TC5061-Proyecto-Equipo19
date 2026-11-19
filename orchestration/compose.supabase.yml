@@ -1,0 +1,13 @@
+# OPCIONAL: conecta la UI MLflow de Compose al backend/artefactos del equipo en Supabase.
+# Úsalo solo si necesitas consultar los runs/Registry preexistentes.
+# Requiere el .env LOCAL (no versionado) con las credenciales completas.
+# docker compose -f docker-compose.yml -f orchestration/compose.supabase.yml up -d --build
+services:
+  mlflow:
+    environment:
+      MLFLOW_BACKEND_STORE_URI: ${DATABASE_URL:?Configurar DATABASE_URL en .env local}
+      MLFLOW_ARTIFACTS_DESTINATION: s3://mlflow-artifacts
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?Configurar AWS_ACCESS_KEY_ID en .env local}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?Configurar AWS_SECRET_ACCESS_KEY en .env local}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      MLFLOW_S3_ENDPOINT_URL: ${MLFLOW_S3_ENDPOINT_URL:?Configurar MLFLOW_S3_ENDPOINT_URL en .env local}

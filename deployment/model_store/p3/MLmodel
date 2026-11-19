@@ -1,0 +1,61 @@
+artifact_path: file:///D:/00%20Clases/TEC%20Monterrey/Cursos/4to%20Trimestre/Operaciones%20de%20aprendizaje%20autom%C3%A1tico/Tareas/Proyecto%20MiBici/TC5061-Proyecto-Equipo19/mlartifacts/models/m-0d136fe3c2fb4473b4555fadbc3316e9/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.7
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.1
+    skops_trusted_types:
+    - numpy.dtype
+    - sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor
+is_signature_from_type_hint: false
+mlflow_version: 3.16.1
+model_id: m-0d136fe3c2fb4473b4555fadbc3316e9
+model_size_bytes: 49003
+model_uuid: m-0d136fe3c2fb4473b4555fadbc3316e9
+prompts: null
+run_id: 594403c4ced240a2863cde00cfcdd086
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "viajes_iniciados", "required": true}, {"type":
+    "double", "name": "viajes_finalizados", "required": true}, {"type": "double",
+    "name": "total_viajes", "required": true}, {"type": "double", "name": "salidas_hora_00",
+    "required": true}, {"type": "double", "name": "salidas_hora_01", "required": true},
+    {"type": "double", "name": "salidas_hora_02", "required": true}, {"type": "double",
+    "name": "salidas_hora_03", "required": true}, {"type": "double", "name": "salidas_hora_04",
+    "required": true}, {"type": "double", "name": "salidas_hora_05", "required": true},
+    {"type": "double", "name": "salidas_hora_06", "required": true}, {"type": "double",
+    "name": "salidas_hora_07", "required": true}, {"type": "double", "name": "salidas_hora_08",
+    "required": true}, {"type": "double", "name": "salidas_hora_09", "required": true},
+    {"type": "double", "name": "salidas_hora_10", "required": true}, {"type": "double",
+    "name": "salidas_hora_11", "required": true}, {"type": "double", "name": "salidas_hora_12",
+    "required": true}, {"type": "double", "name": "salidas_hora_13", "required": true},
+    {"type": "double", "name": "salidas_hora_14", "required": true}, {"type": "double",
+    "name": "salidas_hora_15", "required": true}, {"type": "double", "name": "salidas_hora_16",
+    "required": true}, {"type": "double", "name": "salidas_hora_17", "required": true},
+    {"type": "double", "name": "salidas_hora_18", "required": true}, {"type": "double",
+    "name": "salidas_hora_19", "required": true}, {"type": "double", "name": "salidas_hora_20",
+    "required": true}, {"type": "double", "name": "salidas_hora_21", "required": true},
+    {"type": "double", "name": "salidas_hora_22", "required": true}, {"type": "double",
+    "name": "salidas_hora_23", "required": true}, {"type": "double", "name": "salidas_dia_0",
+    "required": true}, {"type": "double", "name": "salidas_dia_1", "required": true},
+    {"type": "double", "name": "salidas_dia_2", "required": true}, {"type": "double",
+    "name": "salidas_dia_3", "required": true}, {"type": "double", "name": "salidas_dia_4",
+    "required": true}, {"type": "double", "name": "salidas_dia_5", "required": true},
+    {"type": "double", "name": "salidas_dia_6", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int32", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-10-22 04:55:34.728912'
