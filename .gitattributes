@@ -1,0 +1,4 @@
+# Conservar exactamente los bytes de los snapshots MLflow.
+# Evitar conversiones CRLF/LF al versionarlos y descargarlos.
+
+deployment/model_store/** -text
