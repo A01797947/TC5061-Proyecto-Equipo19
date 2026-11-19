@@ -1,0 +1,37 @@
+artifact_path: file:///D:/00%20Clases/TEC%20Monterrey/Cursos/4to%20Trimestre/Operaciones%20de%20aprendizaje%20autom%C3%A1tico/Tareas/Proyecto%20MiBici/TC5061-Proyecto-Equipo19/mlartifacts/models/m-eb33489f58ac411c925ced18ade788fe/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.7
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.1
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.16.1
+model_id: m-eb33489f58ac411c925ced18ade788fe
+model_size_bytes: 269869
+model_uuid: m-eb33489f58ac411c925ced18ade788fe
+prompts: null
+run_id: ba2b1e2923bf4565951150bb0fc5f107
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "integer", "name": "A\u00f1o", "required": true}, {"type": "integer",
+    "name": "Mes", "required": true}, {"type": "integer", "name": "Dia", "required":
+    true}, {"type": "integer", "name": "Dia_semana", "required": true}, {"type": "string",
+    "name": "origin_station_id", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-10-22 04:40:09.700140'
