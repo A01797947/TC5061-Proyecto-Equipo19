@@ -1,0 +1,7 @@
+variable,metodo,score,umbral,drift,es_temporal_contextual
+Año,jensenshannon,0.8325546111576977,0.1,True,True
+origin_station_id,jensenshannon,0.29430017646559126,0.1,True,False
+cantidad_viajes,jensenshannon,0.06329899577426439,0.1,False,False
+Dia,jensenshannon,0.024357184213767726,0.1,False,False
+Dia_semana,jensenshannon,0.02101253991573357,0.1,False,False
+Mes,jensenshannon,0.007367535546997129,0.1,False,False

@@ -1,0 +1,66 @@
+{
+  "run": "media20",
+  "users": 20,
+  "engine": "podman",
+  "duration_seconds_configured": 120,
+  "cloud_reference": "AWS EC2 t3.large Linux on-demand, US East (N. Virginia), 2 vCPU, 8 GiB",
+  "hourly_usd": 0.0835,
+  "rate_source": "https://aws.amazon.com/ec2/instance-types/t3/",
+  "requests": 1314,
+  "errors": 0,
+  "success": 1314,
+  "error_rate_pct": 0.0,
+  "latency_ms": {
+    "promedio": 297.1859744573938,
+    "p50": 66.0,
+    "p95": 960.0,
+    "p99": 1100.0
+  },
+  "rps_success": 10.95,
+  "rps_all": 10.95,
+  "simulated_test_usd": 0.002783333333333334,
+  "usd_per_successful_inference": 2.118214104515475e-06,
+  "usd_per_1000_successful_inferences": 0.002118214104515475,
+  "hypothetical_24x7_month_usd_720h": 60.120000000000005,
+  "resource_peak_mib_by_service": {
+    "api": 0.0,
+    "mlflow": 0.0
+  },
+  "resource_avg_cpu_percent_by_service": {
+    "api": 2.7318181818181815,
+    "mlflow": 1.8136363636363635
+  },
+  "endpoints": [
+    {
+      "endpoint": "POST /v1/predict/p1",
+      "requests": 607,
+      "failures": 0,
+      "p95_ms": 130.0
+    },
+    {
+      "endpoint": "POST /v1/predict/p2",
+      "requests": 406,
+      "failures": 0,
+      "p95_ms": 1100.0
+    },
+    {
+      "endpoint": "POST /v1/predict/p3",
+      "requests": 301,
+      "failures": 0,
+      "p95_ms": 140.0
+    }
+  ],
+  "graphs": [
+    "media20_grafico_latencia.png",
+    "media20_grafico_rps_errores.png",
+    "media20_grafico_recursos.png"
+  ],
+  "limitations": [
+    "Proyección teórica para una única instancia: no es una factura real de AWS.",
+    "Asume tasa constante durante toda la ventana configurada; incluye ramp-up y puede subestimar capacidad estable.",
+    "El precio de la VM se asigna por completo a API + MLflow. No incluye impuestos, discos, tráfico, red, backups ni Supabase.",
+    "La tasa medida en la laptop/Podman no garantiza el rendimiento de EC2 t3.large.",
+    "T3 usa créditos de CPU: un uso sostenido por encima del baseline puede generar cargos adicionales.",
+    "Las mediciones del proceso Locust se ejecutan fuera de la VM hipotética: su costo no se incluye."
+  ]
+}

@@ -1,0 +1,13 @@
+periodo,variable,filas,nulos,porcentaje_nulos,valores_unicos,filas_estacion_dia_duplicadas
+referencia,Año,33032,0,0.0,1,0
+referencia,Mes,33032,0,0.0,3,0
+referencia,Dia,33032,0,0.0,31,0
+referencia,Dia_semana,33032,0,0.0,7,0
+referencia,origin_station_id,33032,0,0.0,360,0
+referencia,cantidad_viajes,33032,0,0.0,288,0
+actual,Año,41611,0,0.0,1,0
+actual,Mes,41611,0,0.0,3,0
+actual,Dia,41611,0,0.0,31,0
+actual,Dia_semana,41611,0,0.0,7,0
+actual,origin_station_id,41611,0,0.0,470,0
+actual,cantidad_viajes,41611,0,0.0,349,0
