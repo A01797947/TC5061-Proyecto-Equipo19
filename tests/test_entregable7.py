@@ -110,3 +110,38 @@ def test_consolidado_realiza_comparacion_sin_inventar(tmp_path):
     report = consolidate(tmp_path, ['baja5', 'media20'])
     assert '7.500' in report.read_text(encoding='utf-8')
     assert 'PENDIENTE' in report.read_text(encoding='utf-8')
+
+
+@pytest.mark.parametrize("texto, segundos", [
+    ("807.618ms", 0.807618),
+    ("12.610604s", 12.610604),
+    ("1m2.5s", 62.5),
+    ("1h0m30s", 3630.0),
+    ("0s", 0.0),
+])
+def test_cpu_seconds_duracion_go(texto, segundos):
+    assert benchmark.cpu_seconds(texto) == pytest.approx(segundos)
+
+
+def test_cpu_seconds_rechaza_formato_desconocido():
+    with pytest.raises(ValueError):
+        benchmark.cpu_seconds("12 segundos")
+
+
+def test_parseo_podman_stats_real_con_cpu_time(monkeypatch):
+    """Fila tomada de una salida real de `podman stats --format json` (macOS, libkrun)."""
+    cid = "703918e4d08b" + "0" * 52
+    row = [{"id": "703918e4d08b", "name": "tc5061-proyecto-equipo19-api-1",
+            "cpu_time": "12.610604s", "cpu_percent": "4.86%", "avg_cpu": "4.86%",
+            "mem_usage": "235.7MB / 7.708GB", "mem_percent": "3.06%"}]
+    monkeypatch.setattr(benchmark, "run", lambda *a, **kw: SimpleNamespace(stdout=json.dumps(row)))
+    data = benchmark.sample("podman", {"api": cid})
+    assert data[0]["cpu_time_s"] == pytest.approx(12.610604)
+    assert data[0]["mem_mib"] == pytest.approx(235.7e6 / 1024**2)
+
+
+def test_resource_from_csv_rechaza_memoria_en_cero(tmp_path):
+    archivo = tmp_path / "ceros_recursos.csv"
+    pd.DataFrame([{"elapsed_s": 5, "service": "api", "cpu_percent": 3.0, "mem_mib": 0.0}]).to_csv(archivo, index=False)
+    with pytest.raises(ValueError, match="0 MiB"):
+        report_finops.resource_from_csv(archivo)
