@@ -1265,9 +1265,9 @@ Después de `podman compose up -d --build` y de instalar `requirements.txt`:
 
 ```powershell
 # Tres escenarios recomendados para el informe
-python -m load_testing.benchmark --engine podman --run-id baja5 --users 5 --spawn-rate 1 --duration 120
-python -m load_testing.benchmark --engine podman --run-id media20 --users 20 --spawn-rate 4 --duration 120
-python -m load_testing.benchmark --engine podman --run-id alta50 --users 50 --spawn-rate 5 --duration 180
+python -m load_testing.benchmark --engine podman-compose --run-id baja5 --users 5 --spawn-rate 1 --duration 120
+python -m load_testing.benchmark --engine podman-compose --run-id media20 --users 20 --spawn-rate 4 --duration 120
+python -m load_testing.benchmark --engine podman-compose --run-id alta50 --users 50 --spawn-rate 5 --duration 180
 
 # En Docker Desktop puedes usar --engine docker. Para este equipo utilizar --engine podman.
 # Ver resultados y tablas por corrida:

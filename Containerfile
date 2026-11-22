@@ -16,14 +16,15 @@ RUN python -m pip install --no-cache-dir -r /app/requirements-serving.txt \
 COPY deployment/__init__.py /app/deployment/__init__.py
 COPY deployment/api /app/deployment/api
 COPY deployment/verify_snapshot.py /app/deployment/verify_snapshot.py
+COPY deployment/entrypoint.sh /app/deployment/entrypoint.sh
 COPY deployment/model_store /app/model_store
 RUN test -s /app/model_store/manifest.json || ( \
     echo "ERROR: ejecuta 'python -m deployment.export_models' antes de podman build" >&2; exit 1)
 # Validar durante podman build los mismos SHA256 que se comprobaran al iniciar.
 # De este modo, un artefacto omitido por el contexto de build falla ANTES de podman run.
-RUN python -m deployment.verify_snapshot
-
-RUN chown -R appuser:appuser /app
+RUN python -m deployment.verify_snapshot \
+    && chmod +x /app/deployment/entrypoint.sh \
+    && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
@@ -31,5 +32,5 @@ EXPOSE 8000
 # start-period amplio porque la API carga los 3 modelos al arrancar.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
-# Un único proceso permite cargar los 3 modelos una sola vez en memoria.
-CMD ["uvicorn", "deployment.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Arranca vía entrypoint para verificar snapshots y sincronizar si hace falta.
+CMD ["/app/deployment/entrypoint.sh"]
