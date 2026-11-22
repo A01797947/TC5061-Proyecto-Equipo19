@@ -1,0 +1,70 @@
+{
+  "run": "antes_u150",
+  "users": 150,
+  "engine": "podman",
+  "duration_seconds_configured": 90,
+  "cloud_reference": "AWS EC2 t3.large Linux on-demand, US East (N. Virginia), 2 vCPU, 8 GiB",
+  "hourly_usd": 0.0835,
+  "rate_source": "https://aws.amazon.com/ec2/instance-types/t3/",
+  "requests": 8146,
+  "errors": 0,
+  "success": 8146,
+  "error_rate_pct": 0.0,
+  "latency_ms": {
+    "promedio": 90.8199885525302,
+    "p50": 17.0,
+    "p95": 520.0,
+    "p99": 920.0
+  },
+  "rps_success": 90.5111111111111,
+  "rps_all": 90.5111111111111,
+  "simulated_test_usd": 0.0020875,
+  "usd_per_successful_inference": 2.562607414682052e-07,
+  "usd_per_1000_successful_inferences": 0.0002562607414682052,
+  "hypothetical_24x7_month_usd_720h": 60.120000000000005,
+  "resource_peak_mib_by_service": {
+    "api": 258.636474609375,
+    "mlflow": 1930.23681640625,
+    "redis": 4.383087158203125,
+    "worker": 223.82736206054688
+  },
+  "resource_avg_cpu_percent_by_service": {
+    "api": 91.90234425820702,
+    "mlflow": 0.9966686611984562,
+    "redis": 0.31769047567825487,
+    "worker": 2.0475700696449355
+  },
+  "endpoints": [
+    {
+      "endpoint": "POST /v1/predict/p1",
+      "requests": 4047,
+      "failures": 0,
+      "p95_ms": 82.0
+    },
+    {
+      "endpoint": "POST /v1/predict/p2",
+      "requests": 2450,
+      "failures": 0,
+      "p95_ms": 870.0
+    },
+    {
+      "endpoint": "POST /v1/predict/p3",
+      "requests": 1649,
+      "failures": 0,
+      "p95_ms": 66.0
+    }
+  ],
+  "graphs": [
+    "antes_u150_grafico_latencia.png",
+    "antes_u150_grafico_rps_errores.png",
+    "antes_u150_grafico_recursos.png"
+  ],
+  "limitations": [
+    "Proyección teórica para una única instancia: no es una factura real de AWS.",
+    "Asume tasa constante durante toda la ventana configurada; incluye ramp-up y puede subestimar capacidad estable.",
+    "El precio de la VM se asigna por completo a API + MLflow. No incluye impuestos, discos, tráfico, red, backups ni Supabase.",
+    "La tasa medida en la laptop/Podman no garantiza el rendimiento de EC2 t3.large.",
+    "T3 usa créditos de CPU: un uso sostenido por encima del baseline puede generar cargos adicionales.",
+    "Las mediciones del proceso Locust se ejecutan fuera de la VM hipotética: su costo no se incluye."
+  ]
+}

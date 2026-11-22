@@ -7,11 +7,31 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi import Path as PathParam
+from redis import Redis
+from redis.exceptions import RedisError
+from rq import Queue
 
 from deployment.api.inference import ModelStore
-from deployment.api.schemas import (
-    ModelInfo, P1Request, P1Response, P2Request, P2Response, P3Request, P3Response
+from deployment.api.jobs import (
+    FAILURE_TTL,
+    JOB_TIMEOUT,
+    QUEUE_NAME,
+    RESULT_TTL,
+    predict_p2_job,
 )
+from deployment.api.schemas import (
+    JobAccepted,
+    JobResult,
+    ModelInfo,
+    P1Request,
+    P1Response,
+    P2Request,
+    P2Response,
+    P3Request,
+    P3Response,
+)
+
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 LOGGER = logging.getLogger(__name__)
@@ -21,8 +41,11 @@ ROOT = Path(os.getenv("MIBICI_MODEL_DIR", "/app/model_store"))
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.model_store = ModelStore.load_snapshot(Path(os.getenv("MIBICI_MODEL_DIR", str(ROOT))))
+    redis_url = os.getenv("REDIS_URL")
+    app.state.queue = Queue(QUEUE_NAME, connection=Redis.from_url(redis_url)) if redis_url else None
     yield
     app.state.model_store = None
+    app.state.queue = None
 
 
 app = FastAPI(
@@ -104,3 +127,43 @@ def predict_p3(data: P3Request):
     if cluster < 0 or value != cluster:
         raise HTTPException(status_code=500, detail="Clúster inválido")
     return P3Response(modelo=model["modelo"], version=model["version"], cluster=cluster)
+
+
+def job_queue() -> Queue:
+    queue = getattr(app.state, "queue", None)
+    if queue is None:
+        raise HTTPException(status_code=503, detail="La cola de trabajos no está configurada")
+    return queue
+
+
+@app.post("/v1/jobs/predict/p2", response_model=JobAccepted, status_code=202)
+def submit_p2(data: P2Request):
+    """Encola una predicción P2; el cliente consulta el resultado con el job_id."""
+    try:
+        job = job_queue().enqueue(
+            predict_p2_job, data.model_dump(),
+            result_ttl=RESULT_TTL, failure_ttl=FAILURE_TTL, job_timeout=JOB_TIMEOUT,
+        )
+        estado = job.get_status()
+    except RedisError as exc:
+        LOGGER.exception("No se pudo encolar la predicción P2")
+        raise HTTPException(status_code=503, detail="La cola de trabajos no está disponible") from exc
+    return JobAccepted(job_id=job.id, estado=str(getattr(estado, "value", estado)))
+
+
+@app.get("/v1/jobs/{job_id}", response_model=JobResult)
+def job_result(job_id: str = PathParam(pattern=r"^[0-9a-f-]{36}$")):
+    try:
+        job = job_queue().fetch_job(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Trabajo no encontrado o expirado")
+        raw = job.get_status()
+        estado = str(getattr(raw, "value", raw))
+        if estado == "finished":
+            return JobResult(job_id=job_id, estado=estado, resultado=P2Response(**job.return_value()))
+    except RedisError as exc:
+        LOGGER.exception("No se pudo consultar el trabajo %s", job_id)
+        raise HTTPException(status_code=503, detail="La cola de trabajos no está disponible") from exc
+    if estado == "failed":
+        return JobResult(job_id=job_id, estado=estado, error="La predicción falló")
+    return JobResult(job_id=job_id, estado=estado)

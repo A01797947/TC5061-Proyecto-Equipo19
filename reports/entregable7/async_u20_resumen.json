@@ -1,0 +1,58 @@
+{
+  "run": "async_u20",
+  "users": 20,
+  "engine": "podman",
+  "duration_seconds_configured": 90,
+  "cloud_reference": "AWS EC2 t3.large Linux on-demand, US East (N. Virginia), 2 vCPU, 8 GiB",
+  "hourly_usd": 0.0835,
+  "rate_source": "https://aws.amazon.com/ec2/instance-types/t3/",
+  "requests": 1061,
+  "errors": 0,
+  "success": 1061,
+  "error_rate_pct": 0.0,
+  "latency_ms": {
+    "promedio": 113.6702186717458,
+    "p50": 110.0,
+    "p95": 210.0,
+    "p99": 240.0
+  },
+  "rps_success": 11.78888888888889,
+  "rps_all": 11.78888888888889,
+  "simulated_test_usd": 0.0020875,
+  "usd_per_successful_inference": 1.967483506126296e-06,
+  "usd_per_1000_successful_inferences": 0.0019674835061262957,
+  "hypothetical_24x7_month_usd_720h": 60.120000000000005,
+  "resource_peak_mib_by_service": {
+    "api": 475.0251770019531,
+    "mlflow": 1916.8853759765625,
+    "redis": 11.9781494140625,
+    "worker": 260.92529296875
+  },
+  "resource_avg_cpu_percent_by_service": {
+    "api": 4.353442748246842,
+    "mlflow": 1.4598874046436996,
+    "redis": 1.928746292719929,
+    "worker": 42.050648857517274
+  },
+  "endpoints": [
+    {
+      "endpoint": "ASYNC /v1/jobs/predict/p2",
+      "requests": 1061,
+      "failures": 0,
+      "p95_ms": 210.0
+    }
+  ],
+  "graphs": [
+    "async_u20_grafico_latencia.png",
+    "async_u20_grafico_rps_errores.png",
+    "async_u20_grafico_recursos.png"
+  ],
+  "limitations": [
+    "Proyección teórica para una única instancia: no es una factura real de AWS.",
+    "Asume tasa constante durante toda la ventana configurada; incluye ramp-up y puede subestimar capacidad estable.",
+    "El precio de la VM se asigna por completo a API + MLflow. No incluye impuestos, discos, tráfico, red, backups ni Supabase.",
+    "La tasa medida en la laptop/Podman no garantiza el rendimiento de EC2 t3.large.",
+    "T3 usa créditos de CPU: un uso sostenido por encima del baseline puede generar cargos adicionales.",
+    "Las mediciones del proceso Locust se ejecutan fuera de la VM hipotética: su costo no se incluye."
+  ]
+}

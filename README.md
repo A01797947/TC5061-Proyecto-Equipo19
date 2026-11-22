@@ -1201,16 +1201,64 @@ podman compose logs mlflow --tail=50
 python -m deployment.smoke_test
 ```
 
-**Verificación:** `/health` devolvió `status=ok`
-para las versiones P1/P2/P3 y las tres rutas POST devolvieron predicciones.
-La API indicó `Application startup complete`; quedaron advertencias de versiones
-de paquetes entrenados frente a los del contenedor. Alinear dependencias y ejecutar
-un smoke test en CI sigue siendo importante. **Podman Compose + FastAPI + MLflow
-fueron comprobados localmente; el pipeline remoto y Locust aún requieren evidencias.**
+**Verificación:** tras `podman compose up -d --build`, los cuatro servicios
+(`api`, `mlflow`, `redis` y `worker`) deben aparecer `Up` en `podman compose ps`,
+y `/health` debe devolver `status=ok` con las versiones de P1, P2 y P3.
+`python -m deployment.smoke_test` prueba las tres rutas POST. El pipeline de CI
+ejecuta ese mismo smoke test contra la imagen construida. Pueden aparecer
+advertencias por diferencias de versiones de paquetes entre entrenamiento y
+contenedor; alinear dependencias sigue siendo una mejora pendiente.
 
 Rutas: [health](http://127.0.0.1:8000/health), [Swagger](http://127.0.0.1:8000/docs),
 [MLflow](http://127.0.0.1:5000). Los puertos se publican solo en loopback;
 la API usa snapshots y no consulta MLflow durante cada inferencia.
+
+#### Servicios, límites de recursos y cola asíncrona
+
+| Servicio | Imagen | `cpus` / `mem_limit` | Puerto | Función |
+|---|---|---|---|---|
+| `api` | `mibici-equipo19-api:entregable7` | 2 / 3 GB | `127.0.0.1:8000` | FastAPI: predicciones síncronas y encolado de trabajos |
+| `mlflow` | `mibici-equipo19-mlflow:entregable7` | 1 / 3 GB | `127.0.0.1:5000` | Tracking y Registry; no participa en la inferencia |
+| `redis` | `redis:7-alpine` | 0.5 / 256 MB | ninguno (red interna) | Cola de RQ, sin persistencia (`--save "" --appendonly no`) |
+| `worker` | misma imagen que `api` | 1 / 1 GB | ninguno | Ejecuta los trabajos de RQ con los modelos precargados |
+
+El generador de carga (`locust`) solo existe bajo el perfil `load` de Compose.
+Los límites permiten comparar corridas de forma reproducible y se pueden
+comprobar con `podman inspect`. La API espera a que Redis esté sano
+(`depends_on` con `service_healthy`) y Redis no publica puertos.
+
+La API se ajusta con variables de entorno (valores por defecto de Compose):
+
+| Variable | Defecto | Efecto |
+|---|---|---|
+| `UVICORN_WORKERS` | `2` | Procesos de la API; cada uno carga los tres modelos (~250 MiB por proceso) |
+| `OMP_NUM_THREADS` | `1` | Hilos de la librería numérica por proceso (evita competir por los núcleos) |
+| `OPENBLAS_NUM_THREADS` | `1` | Igual, para OpenBLAS |
+
+**Cola asíncrona (Redis + RQ).** Además de `POST /v1/predict/p2` (síncrono),
+P2 se puede ejecutar como trabajo en segundo plano, ya que es la ruta con mayor
+latencia en las pruebas de carga:
+
+| Verbo y ruta | Respuesta |
+|---|---|
+| `POST /v1/jobs/predict/p2` | `202 Accepted` con `job_id` y `estado`; mismo cuerpo que la ruta síncrona |
+| `GET /v1/jobs/{job_id}` | Estado del trabajo (`queued`, `started`, `finished`, `failed`) y, si terminó, el resultado |
+
+Si el trabajo no existe responde `404`; si Redis no está disponible, `503`. El
+resultado se conserva 300 s y cada trabajo tiene un tiempo máximo de 30 s.
+
+```bash
+JOB=$(curl -s -X POST http://127.0.0.1:8000/v1/jobs/predict/p2 \
+  -H "Content-Type: application/json" -d @deployment/examples/p2.json \
+  | python -c "import sys, json; print(json.load(sys.stdin)['job_id'])")
+curl -s http://127.0.0.1:8000/v1/jobs/$JOB
+```
+
+**Limitaciones.** Redis corre sin persistencia (solo en memoria): si su contenedor
+se reinicia, se pierden los trabajos pendientes y los resultados, y cada resultado
+expira a los 300 s. Solo P2 tiene versión asíncrona; las rutas `/v1/predict/*` son
+síncronas. Este carril se verificó funcionalmente y con pruebas unitarias
+(`tests/test_jobs_p2.py`); las pruebas de carga con Locust miden las rutas síncronas.
 
 **¿Para qué sirve `orchestration/compose.supabase.yml`?** Es un *override
 opcional* del servicio `mlflow`: reemplaza la base SQLite y el directorio de
@@ -1241,16 +1289,19 @@ SQLite y los volúmenes son **independientes** del historial de Supabase.
 
 ### 3. CI/CD — `.github/workflows/entregable7-cicd.yml`
 
-**En `push`, PR y ejecución manual** se ejecutan las pruebas automatizadas,
-validación de integridad de los snapshots/Compose, build OCI y smoke test contra
-la imagen real. Al hacer `push` sobre `main`, si todo pasa, se publica la imagen
-en `ghcr.io/<owner>/<repo>/mibici-api:latest` y con el tag del SHA de Git.
-Los PR no publican imágenes. El `GITHUB_TOKEN` estándar se utiliza para GHCR;
-se necesita habilitar permisos de escritura de Packages al workflow según
-las políticas del repositorio. Esta etapa es **entrega continua a un registro**,
-no despliegue automático a una VM o ambiente productivo (no se ha configurado destino).
-Los tests `deepchecks` requieren un entorno Python 3.10 aparte, por lo que
-este workflow los excluye con `-m 'not deepchecks'`.
+Hay **dos workflows** en GitHub Actions:
+
+- `entregable7-cicd.yml` (push a cualquier rama, PR y ejecución manual): el job
+  `pruebas` ejecuta las pruebas sin datos grandes y la validación de integridad
+  de snapshots y Compose; el job `imagen` construye la imagen OCI y hace un smoke
+  test real contra ella. Al hacer `push` sobre `main`, si todo pasa, publica la
+  imagen en `ghcr.io/<owner>/<repo>/mibici-api:latest` y con el tag del SHA de Git.
+  Los PR no publican imágenes. Esta etapa es **entrega continua a un registro**,
+  no despliegue automático (no hay destino configurado).
+- `quality-security.yml` (push a `main` y PR): PyTest, escaneo de secretos,
+  Bandit y pip-audit (Python 3.14), más DeepChecks con datos sintéticos
+  (Python 3.10, entorno aparte; por eso el otro workflow los excluye con
+  `-m 'not deepchecks'`).
 
 ### 4. Locust + CPU/RAM en un único procedimiento
 
@@ -1294,6 +1345,71 @@ y las capturas de `podman compose ps` y `GitHub Actions`. Los resultados se
 versionan con Git; no se deben inventar cifras si no se han ejecutado pruebas.
 Evitar cambiar configuración de CPU/RAM entre las corridas comparadas.
 
+#### Corridas de optimización (antes y después)
+
+Tras agregar Redis, los límites de recursos y los workers de uvicorn se tomaron
+nuevas corridas en macOS (zsh). **Estas no son comparables con los pilotos
+anteriores**, porque la configuración de la API es distinta. Con los cuatro
+servicios en `Up` (`podman compose ps`):
+
+```bash
+# --spawn-rate = usuarios/10. caffeinate evita que el equipo se duerma;
+# la pausa de 60 s lo deja enfriar entre corridas.
+caffeinate -i sh -c 'sleep 60; python -m load_testing.benchmark --engine podman --run-id despues_u100 --users 100 --spawn-rate 10 --duration 90; sleep 60; python -m load_testing.benchmark --engine podman --run-id despues_u200 --users 200 --spawn-rate 20 --duration 90; sleep 60; python -m load_testing.benchmark --engine podman --run-id despues_u300 --users 300 --spawn-rate 30 --duration 90'
+```
+
+| Prefijo | Configuración de la API | Usuarios |
+|---|---|---|
+| `antes_*` | 1 worker, hilos numéricos sin limitar, con límites de recursos | 20, 60, 100, 150, 200 |
+| `despues_*` | 2 workers, 1 hilo por librería numérica | 100, 200, 300, 400 |
+| `despues_1w_u200` | 1 worker y 1 hilo (aísla el efecto de los workers) | 200 |
+
+**Variables de entorno: pasarlas también al benchmark.** Para aislar un factor,
+la API se recrea con las variables, y el benchmark **debe llevar las mismas**:
+
+```bash
+UVICORN_WORKERS=1 OMP_NUM_THREADS=1 podman compose up -d --force-recreate --no-deps --wait api
+UVICORN_WORKERS=1 OMP_NUM_THREADS=1 python -m load_testing.benchmark --engine podman --run-id despues_1w_u200 --users 200 --spawn-rate 20 --duration 90
+```
+
+Si el benchmark se lanza sin ellas, `compose run` detecta que la configuración
+cambió y **recrea la API con los valores por defecto**: la corrida se mide contra
+otra configuración y el muestreo de recursos falla (`podman stats` con código 125,
+porque el ID de contenedor tomado al inicio ya no existe). Después de cada
+experimento, restaurar la configuración final y comprobar que hay una línea por worker:
+
+```bash
+podman compose up -d --force-recreate --no-deps --wait api
+podman compose logs api | grep "Started server process"
+```
+
+El CPU se calcula con deltas de `cpu_time` de `podman stats` (100% = un núcleo).
+Entre corridas comparadas solo debe cambiar la variable bajo estudio. Para el
+comparativo (reescribe `reports/entregable7/RESUMEN_COMPARATIVO.md`; los pilotos
+se conservan en `RESUMEN_COMPARATIVO_pilotos.md`):
+
+```bash
+python -m load_testing.consolidate --runs antes_u100 despues_u100 antes_u200 despues_1w_u200 despues_u200 despues_u300 despues_u400
+```
+
+**Carril asíncrono (P2 por la cola).** Se activa con `LOCUST_SCENARIO=async`; el
+escenario síncrono sigue siendo el predeterminado. Cada usuario envía un trabajo,
+consulta su estado cada 100 ms y registra el tiempo de envío a resultado como una
+sola fila (`ASYNC /v1/jobs/predict/p2`).
+
+```bash
+LOCUST_SCENARIO=async caffeinate -i sh -c 'sleep 60; python -m load_testing.benchmark --engine podman --run-id async_u20 --users 20 --spawn-rate 2 --duration 90; sleep 60; python -m load_testing.benchmark --engine podman --run-id async_u40 --users 40 --spawn-rate 4 --duration 90; sleep 60; python -m load_testing.benchmark --engine podman --run-id async_u80 --users 80 --spawn-rate 8 --duration 90'
+```
+
+| Corrida | Trabajos/s | p50 | p95 | CPU del worker |
+|---|---|---|---|---|
+| `async_u20` | 11.8 | 110 ms | 210 ms | 42 % |
+| `async_u40` | 22.6 | 110 ms | 430 ms | 75 % |
+| `async_u80` | 28.5 | 1200 ms | 1600 ms | 89 % |
+
+Con un worker (un núcleo) la cola se satura en ≈28 trabajos/s. El tiempo incluye el
+sondeo cada 100 ms, por lo que el mínimo es ≈104 ms.
+
 ### 5. Análisis FinOps
 
 El reporte estima el costo **hipotético** de usar AWS EC2 `t3.large` Linux
@@ -1311,14 +1427,43 @@ en EC2. No incorpora otros servicios, almacenamiento, red, créditos de CPU, imp
 ni costos de Supabase. Para evaluar alternativas, repetir pruebas y variar
 `--hourly-usd` en el script de benchmark (precio de referencia verificable).
 
+**Resultados medidos** (laptop con Podman; objetivo de latencia p95 ≤ 500 ms; 0 % de errores en todas las corridas):
+
+| Corrida | RPS | p95 | USD por 1 M de inferencias |
+|---|---|---|---|
+| `antes_u100` | 61.2 | 180 ms | 0.379 |
+| `antes_u200` | 103.7 | 1300 ms (incumple) | 0.224 |
+| `despues_1w_u200` | 119.6 | 490 ms | 0.194 |
+| `despues_u200` | 125.2 | 57 ms | 0.185 |
+| `despues_u300` | 181.4 | 320 ms | 0.128 |
+| `despues_u400` | 216.0 | 1100 ms (incumple) | 0.107 |
+
+- La optimización **no baja el costo con la misma carga**: sube la capacidad por
+  dólar (la tarifa es fija). El costo unitario depende de la utilización.
+- El punto de operación recomendado es `despues_u300` (≈181 RPS, p95 de 320 ms).
+  `u400` es más barato por inferencia, pero incumple el objetivo de latencia.
+- Con 1 worker, limitar los hilos reduce el p95 de 1300 a 490 ms; el segundo
+  worker lo reduce a 57 ms.
+- Memoria máxima medida: MLflow ≈ 1.9 GiB, API ≈ 0.5 GiB, worker ≈ 0.23 GiB.
+  Palancas: ajustar el tamaño de la instancia, sacar MLflow del camino de
+  inferencia, compromisos de uso, Spot para el worker asíncrono y escalar por
+  umbral (~60 % de CPU de la API). Son hipótesis de costo, no mediciones en EC2.
+
+Tabla completa: [`reports/entregable7/RESUMEN_COMPARATIVO.md`](reports/entregable7/RESUMEN_COMPARATIVO.md).
+
 ### 6. Evidencias
 
-El archivo [`reports/entregable7/INFORME_ENTREGABLE7.md`](reports/entregable7/INFORME_ENTREGABLE7.md)
-contiene arquitectura, metodología, tabla para completar y límites de FinOps.
-Adjuntar después las mediciones reales y gráficos de al menos tres escenarios,
-capturas de `compose ps`, health y MLflow, así como Actions exitosas.
-**Los resultados no se pueden generar honestamente sin ejecutar los contenedores**
-en el entorno donde se tomará la evidencia.
+**Mediciones y resultados**
+
+- Comparativo con todas las mediciones: [`reports/entregable7/RESUMEN_COMPARATIVO.md`](reports/entregable7/RESUMEN_COMPARATIVO.md)
+  (pilotos iniciales en `RESUMEN_COMPARATIVO_pilotos.md`).
+- Por corrida: `reports/entregable7/<run-id>_*` (HTML Locust, CSV, JSON, gráficas).
+- Informe: `TC5061_Operacion_FinOps_Equipo19.pdf`.
+- Arquitectura y metodología: [`reports/entregable7/INFORME_ENTREGABLE7.md`](reports/entregable7/INFORME_ENTREGABLE7.md).
+
+**Capturas a adjuntar:** `podman compose ps`, `/health`, MLflow y GitHub Actions
+con los jobs en verde (URL de la ejecución: PENDIENTE, completar al cerrar el PR).
+
 
 ### 7. Comandos de Git
 

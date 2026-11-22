@@ -4,6 +4,7 @@
 *.csv
 # Evidencias del Entregable 8 (tablas pequeñas citadas en el informe)
 !reports/entregable8/*.csv
+!reports/entregable7/*.csv
 *.parquet
 *.csv.part
 

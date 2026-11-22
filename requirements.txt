@@ -49,3 +49,7 @@ pytest==9.2.0
 
 # Paquete del proyecto en modo editable
 -e .
+
+#Redis
+redis==8.1.0
+rq==3.0.0

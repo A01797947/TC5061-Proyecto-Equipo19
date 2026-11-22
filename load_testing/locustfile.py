@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import time
+import requests
 
 from locust import HttpUser, between, task
 
@@ -71,3 +73,59 @@ class UsuarioMiBici(HttpUser):
     @task(2)
     def grupos_p3(self):
         self.consultar("p3", P3, "cluster")
+
+
+class UsuarioAsincrono(HttpUser):
+    """Escenario asíncrono: P2 por la cola (Redis + RQ).
+
+    Mide el tiempo desde el envío hasta que el resultado está disponible.
+    """
+    wait_time = between(1.0, 2.0)
+    POLL_INTERVAL = 0.1   # segundos entre consultas de estado
+    MAX_WAIT = 30         # igual que el job_timeout de la API
+
+    def on_start(self):
+        self.http = requests.Session()
+
+    @task
+    def riesgo_p2_asincrono(self):
+        inicio = time.perf_counter()
+        error = None
+        try:
+            r = self.http.post(f"{self.host}/v1/jobs/predict/p2", json=P2, timeout=30)
+            if r.status_code != 202:
+                error = f"HTTP {r.status_code} al encolar"
+            else:
+                job_id = r.json()["job_id"]
+                while True:
+                    if time.perf_counter() - inicio > self.MAX_WAIT:
+                        error = "tiempo agotado esperando el resultado"
+                        break
+                    time.sleep(self.POLL_INTERVAL)
+                    s = self.http.get(f"{self.host}/v1/jobs/{job_id}", timeout=30)
+                    if s.status_code != 200:
+                        error = f"HTTP {s.status_code} al consultar"
+                        break
+                    estado = s.json()["estado"]
+                    if estado == "finished":
+                        break
+                    if estado == "failed":
+                        error = "el trabajo falló"
+                        break
+        except Exception as exc:  # red, JSON inválido, etc.
+            error = repr(exc)
+        self.environment.events.request.fire(
+            request_type="POST",
+            name="ASYNC /v1/jobs/predict/p2",
+            response_time=(time.perf_counter() - inicio) * 1000,
+            response_length=0,
+            exception=Exception(error) if error else None,
+            context={},
+        )
+
+
+# Se ejecuta un solo escenario, elegido con LOCUST_SCENARIO (por defecto, "sync").
+if os.getenv("LOCUST_SCENARIO", "sync") == "async":
+    UsuarioMiBici.abstract = True
+else:
+    UsuarioAsincrono.abstract = True
