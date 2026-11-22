@@ -20,6 +20,9 @@ services:
       MIBICI_MODEL_DIR: /app/model_store
       LOG_LEVEL: INFO
       REDIS_URL: redis://redis:6379/0
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+      OMP_NUM_THREADS: ${OMP_NUM_THREADS:-1}
+      OPENBLAS_NUM_THREADS: ${OPENBLAS_NUM_THREADS:-1}
     healthcheck:
       test:
         - CMD
