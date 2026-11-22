@@ -120,6 +120,8 @@ services:
   locust:
     image: locustio/locust:2.47.0
     profiles: ["load"]
+    environment:
+      LOCUST_SCENARIO: ${LOCUST_SCENARIO:-sync}
     depends_on:
       api:
         condition: service_healthy
