@@ -112,8 +112,13 @@ def main():
     compose = compose_command(args.engine)
     containers = {}
     for service in ("api", "mlflow"):
-        res = run(compose + ["ps", "-q", service])
-        cid = res.stdout.strip().splitlines()
+        if args.engine == "podman-compose":
+            # podman-compose ps -q no acepta <service> en algunas versiones; resolvemos por nombre del servicio
+            ps_res = run(["podman", "ps", "-q", "--filter", "status=running", "--filter", f"name=_{service}_|-{service}-|{service}"])
+            cid = ps_res.stdout.strip().splitlines()
+        else:
+            res = run(compose + ["ps", "-q", service])
+            cid = res.stdout.strip().splitlines()
         if not cid:
             p.error(f"Servicio {service} no está levantado. Ejecuta: {' '.join(compose)} up -d --build")
         containers[service] = cid[0]
