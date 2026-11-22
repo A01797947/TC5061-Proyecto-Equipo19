@@ -132,7 +132,7 @@ def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
     compose = compose_command(args.engine)
     containers = {}
-    for service in ("api", "mlflow"):
+    for service in ("api", "mlflow", "redis", "worker"):
         if args.engine == "podman-compose":
             # podman-compose ps -q no acepta <service> en algunas versiones; resolvemos por nombre del servicio
             ps_res = run(["podman", "ps", "-q", "--filter", "status=running", "--filter", f"name=_{service}_|-{service}-|{service}"])
