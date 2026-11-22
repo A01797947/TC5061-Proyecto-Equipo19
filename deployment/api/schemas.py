@@ -111,3 +111,14 @@ class P3Response(BaseModel):
     modelo: str
     version: str
     cluster: int = Field(ge=0)
+
+class JobAccepted(BaseModel):
+    job_id: str
+    estado: str
+
+
+class JobResult(BaseModel):
+    job_id: str
+    estado: str
+    resultado: P2Response | None = None
+    error: str | None = None

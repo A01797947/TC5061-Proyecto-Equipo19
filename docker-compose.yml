@@ -11,11 +11,15 @@ services:
     cpus: "2"
     mem_limit: 3g
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "127.0.0.1:${MIBICI_API_PORT:-8000}:8000"
     environment:
       MIBICI_MODEL_DIR: /app/model_store
       LOG_LEVEL: INFO
+      REDIS_URL: redis://redis:6379/0
     healthcheck:
       test:
         - CMD
@@ -64,6 +68,49 @@ services:
       timeout: 8s
       start_period: 120s
       retries: 8
+    security_opt:
+      - no-new-privileges:true
+  redis:
+    image: redis:7-alpine
+    init: true
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    cpus: "0.5"
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  worker:
+    image: mibici-equipo19-api:entregable7
+    init: true
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    command: ["python", "-m", "deployment.api.worker"]
+    environment:
+      MIBICI_MODEL_DIR: /app/model_store
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+    cpus: "1"
+    mem_limit: 1g
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, redis; redis.Redis.from_url(os.environ['REDIS_URL']).ping()"
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
     security_opt:
       - no-new-privileges:true
 
