@@ -95,6 +95,8 @@ def resource_from_csv(path: Path) -> pd.DataFrame:
         data[name] = pd.to_numeric(data[name], errors="coerce")
     if not data["cpu_percent"].notna().any() or not data["mem_mib"].notna().any():
         raise ValueError("No se pudieron interpretar muestras de CPU y memoria")
+    if data["mem_mib"].max() <= 0:
+        raise ValueError("La memoria medida es 0 MiB: el muestreo es inválido; revisar podman stats")
     return data
 
 

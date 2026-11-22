@@ -22,7 +22,7 @@ OUTPUT = ROOT / "reports" / "entregable7"
 UNIT = {"b": 1 / (1024 * 1024), "kib": 1 / 1024, "mib": 1, "gib": 1024,
         "tib": 1024 * 1024, "kb": 1000 / 1024**2, "mb": 1000**2 / 1024**2,
         "gb": 1000**3 / 1024**2, "tb": 1000**4 / 1024**2}
-
+GO_UNITS = {"ns": 1e-9, "us": 1e-6, "µs": 1e-6, "ms": 1e-3, "s": 1.0, "m": 60.0, "h": 3600.0}
 
 def ram_mib(value) -> float:
     if isinstance(value, (float, int)):
@@ -32,6 +32,14 @@ def ram_mib(value) -> float:
     if not m:
         raise ValueError(f"Formato de memoria inesperado: {value!r}")
     return float(m.group(1)) * UNIT[m.group(2).lower()]
+
+def cpu_seconds(value) -> float:
+    """Convierte una duración de Go ('807.618ms', '1m2.5s') a segundos."""
+    text = str(value).strip()
+    parts = re.findall(r"([0-9]*\.?[0-9]+)(ns|us|µs|ms|s|m|h)", text)
+    if not parts or "".join(n + u for n, u in parts) != text:
+        raise ValueError(f"Duración de CPU inesperada: {value!r}")
+    return sum(float(n) * GO_UNITS[u] for n, u in parts)
 
 
 def cpu_percent(value) -> float:
@@ -70,7 +78,11 @@ def sample(engine: str, containers: dict[str, str]) -> list[dict]:
             continue
         cpu = entry.get("CPUPerc", entry.get("cpu_percent", entry.get("CPU", entry.get("cpu"))))
         mem = entry.get("MemUsage", entry.get("mem_usage", entry.get("Mem", entry.get("mem"))))
-        result.append({"service": service, "cpu_percent": cpu_percent(cpu), "mem_mib": ram_mib(mem)})
+        cpu_time = entry.get("cpu_time")
+        result.append({"service": service, 
+                       "cpu_percent": cpu_percent(cpu), 
+                       "mem_mib": ram_mib(mem),
+                       "cpu_time_s": cpu_seconds(cpu_time) if cpu_time else None})
     if not result:
         raise ValueError(f"Stats no contienen IDs reconocibles: {list(rows[0])}")
     return result
@@ -81,12 +93,21 @@ def monitor(engine: str, containers: dict[str, str], target: Path, errors: Path,
     with target.open("w", newline="", encoding="utf-8") as stream, errors.open("w", encoding="utf-8") as logfile:
         writer = csv.DictWriter(stream, fieldnames=["timestamp_utc", "elapsed_s", "service", "cpu_percent", "mem_mib"])
         writer.writeheader()
+        previous = {}
         while not stop.is_set():
             try:
                 rows = sample("docker" if engine == "docker" else "podman", containers)
+                now = time.monotonic()
                 for item in rows:
+                    cpu_s = item.pop("cpu_time_s", None)
+                    if cpu_s is not None:
+                        before = previous.get(item["service"])
+                        previous[item["service"]] = (cpu_s, now)
+                        if before is None:
+                            continue  # primera muestra: solo sirve de referencia
+                        item["cpu_percent"] = 100 * (cpu_s - before[0]) / (now - before[1])
                     writer.writerow({"timestamp_utc": datetime.now(timezone.utc).isoformat(),
-                                    "elapsed_s": round(time.monotonic() - started, 2), **item})
+                                    "elapsed_s": round(now - started, 2), **item})
                 stream.flush()
             except (subprocess.SubprocessError, ValueError, KeyError, OSError) as ex:
                 logfile.write(f"{datetime.now(timezone.utc).isoformat()} {type(ex).__name__}: {ex}\n")
