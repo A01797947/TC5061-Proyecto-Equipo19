@@ -1,0 +1,62 @@
+{
+  "tipo": "captura_metrica_estatica_solo_lectura",
+  "fecha_revision": "2026-11-24",
+  "fuente": "mlflow.db del ZIP recibido (no subir el SQLite a Git)",
+  "advertencia": "no sustituye reports/entregable8 ni garantiza acceso remoto al Registry",
+  "runs": {
+    "p1": {
+      "run_id": "ba2b1e2923bf4565951150bb0fc5f107",
+      "status": "FINISHED",
+      "metricas": {
+        "valid_mae": 8.288342331375357,
+        "test_mae": 9.621470245096058,
+        "valid_r2": 0.8375166925171018,
+        "test_r2": 0.8110901782337979
+      }
+    },
+    "p2": {
+      "run_id": "05afe261554d40e1a4ca960b341305cb",
+      "status": "FINISHED",
+      "metricas": {
+        "valid_precision_at_10": 0.9554347826086956,
+        "test_precision_at_10": 0.947608695652174,
+        "valid_average_precision": 0.8365530714201137,
+        "test_average_precision": 0.8337668247977286,
+        "valid_recall": 0.9225547789877787,
+        "test_recall": 0.9254847368333305,
+        "valid_f2": 0.8168684937327385,
+        "test_f2": 0.8141664955560118,
+        "valid_roc_auc": 0.9299800667887068,
+        "test_roc_auc": 0.9345322229865748,
+        "umbral_elegido_valid": 0.1632706288618548
+      }
+    },
+    "p3": {
+      "run_id": "594403c4ced240a2863cde00cfcdd086",
+      "status": "FINISHED",
+      "metricas": {
+        "silhouette": 0.5174838597356008,
+        "valid_silhouette": 0.49405184992471457,
+        "test_silhouette": 0.5034437190979807,
+        "valid_ari_vs_train": 0.8632490723426791,
+        "test_ari_vs_train": 0.7818729644937907,
+        "n_stations": 371.0
+      }
+    },
+    "p1_ab": {
+      "run_id": "09cb66f30f6e4e4da6adefb3a1694e41",
+      "status": "FINISHED",
+      "metricas": {
+        "e8_a_mae": 15.379185693984727,
+        "e8_b_mae": 11.90495146334622,
+        "e8_a_rmse": 22.556136178759637,
+        "e8_b_rmse": 19.909504067673314,
+        "e8_delta_mae": -3.474234230638507,
+        "e8_ci95_lower": -3.746059800323788,
+        "e8_ci95_upper": -3.186042026318545,
+        "e8_a_r2": 0.6789858822879706,
+        "e8_b_r2": 0.749898900499967
+      }
+    }
+  }
+}
