@@ -1194,24 +1194,73 @@ python -m pip install -r requirements.txt
 podman machine start  # Si ya está iniciada, continuar
 podman info
 python -m deployment.verify_snapshot
-podman compose up -d --build
-podman compose ps
-podman compose logs api --tail=100
-podman compose logs mlflow --tail=50
+# Configuración verificada en Windows/WSL Podman rootless (24-11-2026):
+# mantener docker-compose.yml original sin alteraciones
+podman compose -f docker-compose.podman-diagnostico.yml config --quiet
+podman compose -f docker-compose.podman-diagnostico.yml up -d --build
+podman compose -f docker-compose.podman-diagnostico.yml ps -a
+podman compose -f docker-compose.podman-diagnostico.yml logs --tail=100 api
+podman compose -f docker-compose.podman-diagnostico.yml logs --tail=50 worker
+Invoke-RestMethod -Uri 'http://127.0.0.1:8000/health' -Method Get
 python -m deployment.smoke_test
+Invoke-WebRequest -Uri 'http://127.0.0.1:5000/health' -UseBasicParsing
 ```
 
-**Verificación:** tras `podman compose up -d --build`, los cuatro servicios
-(`api`, `mlflow`, `redis` y `worker`) deben aparecer `Up` en `podman compose ps`,
-y `/health` debe devolver `status=ok` con las versiones de P1, P2 y P3.
-`python -m deployment.smoke_test` prueba las tres rutas POST. El pipeline de CI
-ejecuta ese mismo smoke test contra la imagen construida. Pueden aparecer
-advertencias por diferencias de versiones de paquetes entre entrenamiento y
-contenedor; alinear dependencias sigue siendo una mejora pendiente.
+**Verificación real en Windows (24-11-2026):** con el Compose de diagnóstico,
+los cuatro servicios `api`, `mlflow`, `redis` y `worker` iniciaron; la API
+reportó `healthy` y `/health` respondió con P1/P2/P3 versión 1. El smoke test
+realizó las tres peticiones POST correctamente y el endpoint `/health` de
+MLflow devolvió HTTP 200. El worker inició y quedó escuchando la cola
+`predicciones`; **no consta aquí una prueba completa de encolado y procesamiento**.
+La ejecución local del smoke test no confirma por sí sola que GitHub Actions
+esté en verde.
+
+**Limitación del Compose original:** `podman compose up -d --build` con
+`docker-compose.yml` produjo `crun: open memory.max for writing: No such file
+or directory` en Podman 6.2.0-rc1 sobre WSL, rootless, con
+`cgroupControllers: []`. Para las pruebas locales se retiraron únicamente
+los límites `cpus` y `mem_limit` utilizando
+`docker-compose.podman-diagnostico.yml`; **no sustituye el original** y las
+mediciones de carga/FinOps con distintos límites no son directamente comparables.
+Si deseas repetir mediciones con este archivo, documenta la configuración y
+no asumas que `load_testing.benchmark` emplea automáticamente el mismo Compose.
+
+MLflow advierte diferencias entre dependencias actuales y las registradas:
+`mlflow 3.17.2/3.16.1`, `numpy 2.5.4/2.5.3`, `pandas 3.0.6/3.0.5` y
+`skops 0.16.0/0.14.0` (actual/requerida). Aunque las inferencias funcionaron,
+es una diferencia de reproducibilidad que debe documentarse o validarse con
+el entorno exacto de entrenamiento.
 
 Rutas: [health](http://127.0.0.1:8000/health), [Swagger](http://127.0.0.1:8000/docs),
 [MLflow](http://127.0.0.1:5000). Los puertos se publican solo en loopback;
 la API usa snapshots y no consulta MLflow durante cada inferencia.
+
+#### Verificación rápida antes de la entrega (Windows PowerShell)
+
+Desde la raíz del repositorio y con el entorno Python activo:
+
+```powershell
+python -m pip check
+python -m pytest tests/ -m "not deepchecks" -q
+python -m quality.secrets_scan
+python -m deployment.verify_snapshot
+python -m quality.final_audit --db mlflow.db --json reports/auditoria_local.json
+podman compose -f docker-compose.podman-diagnostico.yml config --quiet
+podman compose -f docker-compose.podman-diagnostico.yml ps -a
+podman inspect tc5061-proyecto-equipo19-api-1 --format "{{.State.Health.Status}}"
+Invoke-RestMethod -Uri 'http://127.0.0.1:8000/health' -Method Get
+python -m deployment.smoke_test
+Invoke-WebRequest -Uri 'http://127.0.0.1:5000/health' -UseBasicParsing
+podman compose -f docker-compose.podman-diagnostico.yml logs --tail=50 worker
+```
+
+`pip install -r requirements.txt` es necesario para preparar el entorno o tras
+cambiar dependencias; no es requisito repetirlo en cada prueba. Las cuatro
+pruebas marcadas `deepchecks` se excluyen en la batería anterior: evaluarlas
+aparte si forman parte de la evidencia. Comprobar también que los tres Model
+Cards estén presentes y que GitHub Actions muestre una ejecución exitosa; el
+script `final_audit` comprueba parte de la presencia de archivos, no su
+correcta ejecución de extremo a extremo.
 
 #### Servicios, límites de recursos y cola asíncrona
 

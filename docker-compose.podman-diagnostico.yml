@@ -1,0 +1,150 @@
+# Archivo temporal para diagnosticar Podman rootless: sin limites por contenedor.
+# No sustituye el docker-compose.yml original para mediciones FinOps.
+# Entregable 7: inferencia P1/P2/P3 + servidor MLflow; Locust bajo perfil opcional.
+# Desde la raíz: podman compose -f docker-compose.podman-diagnostico.yml up -d --build
+# Los snapshots están dentro de la imagen y no se descargan de MLflow en cada request.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: mibici-equipo19-api:entregable7
+    init: true
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${MIBICI_API_PORT:-8000}:8000"
+    environment:
+      MIBICI_MODEL_DIR: /app/model_store
+      LOG_LEVEL: INFO
+      REDIS_URL: redis://redis:6379/0
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+      OMP_NUM_THREADS: ${OMP_NUM_THREADS:-1}
+      OPENBLAS_NUM_THREADS: ${OPENBLAS_NUM_THREADS:-1}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"
+      interval: 15s
+      timeout: 8s
+      start_period: 90s
+      retries: 8
+    security_opt:
+      - no-new-privileges:true
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: orchestration/mlflow/Containerfile
+    image: mibici-equipo19-mlflow:entregable7
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MIBICI_MLFLOW_PORT:-5000}:5000"
+    environment:
+      MLFLOW_BACKEND_STORE_URI: sqlite:////mlflow/state/mlflow.db
+      MLFLOW_ARTIFACTS_DESTINATION: /mlflow/artifacts
+    command:
+      - sh
+      - -ec
+      - >-
+        exec mlflow server
+        --backend-store-uri "$${MLFLOW_BACKEND_STORE_URI}"
+        --artifacts-destination "$${MLFLOW_ARTIFACTS_DESTINATION}"
+        --serve-artifacts --workers 1 --host 0.0.0.0 --port 5000
+    volumes:
+      - mlflow_state:/mlflow/state
+      - mlflow_artifacts:/mlflow/artifacts
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=5)"
+      interval: 20s
+      timeout: 8s
+      start_period: 120s
+      retries: 8
+    security_opt:
+      - no-new-privileges:true
+  redis:
+    image: redis:7-alpine
+    init: true
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  worker:
+    image: mibici-equipo19-api:entregable7
+    init: true
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    command: ["python", "-m", "deployment.api.worker"]
+    environment:
+      MIBICI_MODEL_DIR: /app/model_store
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, redis; redis.Redis.from_url(os.environ['REDIS_URL']).ping()"
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  locust:
+    image: locustio/locust:2.47.0
+    profiles: ["load"]
+    environment:
+      LOCUST_SCENARIO: ${LOCUST_SCENARIO:-sync}
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./load_testing/locustfile.py:/mnt/locust/locustfile.py:ro
+      - ./deployment/examples:/mnt/examples:ro
+      - ./deployment/model_store/p3_ejemplo_peticion.json:/mnt/p3_ejemplo_peticion.json:ro
+      - ./reports/entregable7:/results
+    command:
+      - -f
+      - /mnt/locust/locustfile.py
+      - --host
+      - http://api:8000
+      - --headless
+      - --users
+      - "${LOCUST_USERS:-10}"
+      - --spawn-rate
+      - "${LOCUST_SPAWN_RATE:-2}"
+      - --run-time
+      - "${LOCUST_RUN_TIME:-2m}"
+      - --csv
+      - "/results/${LOCUST_RUN_ID:-piloto}_locust"
+      - --csv-full-history
+      - --html
+      - "/results/${LOCUST_RUN_ID:-piloto}_locust.html"
+      - --only-summary
+      - --stop-timeout
+      - "5"
+
+volumes:
+  mlflow_state:
+  mlflow_artifacts:

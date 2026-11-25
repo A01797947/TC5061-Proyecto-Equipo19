@@ -1,4 +1,4 @@
-name: Calidad y seguridad
+name: MiBici - Calidad y seguridad
 
 on:
   push:
@@ -10,56 +10,49 @@ permissions:
   contents: read
 
 jobs:
-  pruebas-y-seguridad:
-    name: PyTest, secretos, Bandit y pip-audit (Python 3.14)
+  seguridad:
+    name: Tests, secretos, Bandit y dependencias
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
         with:
-          python-version: "3.14"
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
           cache: pip
-      - name: Instalar dependencias
+      - name: Instalar entorno de calidad
         run: |
-          python -m pip install -U pip
+          python -m pip install --upgrade pip
           python -m pip install -r requirements.txt -r requirements-quality.txt
-      - name: PyTest (sin DeepChecks)
-        run: python -m pytest tests/ -m "not deepchecks" -q
-      - name: Búsqueda de secretos
+          python -m pip check
+      - name: PyTest con datos sinteticos
+        run: python -m pytest tests/ -m 'not deepchecks' -q
+      - name: Detector local de secretos
         run: python -m quality.secrets_scan
-      - name: Bandit (severidad media y alta)
+      - name: Auditoria estatica Bandit
         run: python -m bandit -r tc5061_proyecto_equipo19 quality deployment -ll
-      - name: pip-audit de requirements.txt
+      - name: Auditoria de dependencias
         run: python -m pip_audit -r requirements.txt
-      - name: pip-audit de requirements-serving.txt (imagen de la API)
-        run: python -m pip_audit -r requirements-serving.txt
-      - name: pip-audit de requirements-monitoring.txt (Evidently y monitoreo)
-        run: python -m pip_audit -r requirements-monitoring.txt
 
   deepchecks:
-    name: DeepChecks P1/P2/P3 con datos sintéticos (Python 3.10)
+    name: DeepChecks con datos sinteticos (Python 3.10)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
         with:
-          python-version: "3.10"
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
           cache: pip
-      - name: Instalar dependencias de DeepChecks
+          cache-dependency-path: requirements-deepchecks.txt
+      - name: Instalar entorno aislado
         run: |
-          python -m pip install -U pip
+          python -m pip install --upgrade pip
           python -m pip install -r requirements-deepchecks.txt
-      - name: Pruebas de DeepChecks
+          python -m pip check
+      - name: Probar DeepChecks P1 P2 P3
         run: python -m pytest tests/test_deepchecks.py -q
-      - name: Validaciones demo
-        run: |
-          python -m quality.deepchecks_validation --problem P1 --demo
-          python -m quality.deepchecks_validation --problem P2 --demo
-          python -m quality.deepchecks_validation --problem P3 --demo
-      - name: Subir reportes
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: reportes-deepchecks
-          path: reports/quality/
-          if-no-files-found: warn

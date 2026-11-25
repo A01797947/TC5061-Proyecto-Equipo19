@@ -61,6 +61,7 @@ def main() -> None:
             'requirements-serving.txt',
             'deployment/__init__.py',
             'deployment/verify_snapshot.py',
+            'deployment/entrypoint.sh',
         ]:
             _copy_file(ROOT / relative, context / relative)
 

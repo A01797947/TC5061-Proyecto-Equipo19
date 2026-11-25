@@ -1,4 +1,4 @@
-name: Entregable 7 - CI y entrega de imagen
+name: MiBici - Integracion, imagen y publicacion
 
 on:
   push:
@@ -9,83 +9,101 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: mibici-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pruebas:
-    name: Pruebas sin datos grandes
+    name: Pruebas sin datos grandes e integridad de snapshots
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Clonar repositorio
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Configurar Python 3.14
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-serving.txt
-      - name: Instalar dependencias del proyecto
-        run: python -m pip install -r requirements.txt
-      - name: Verificar dependencias
-        run: python -m pip check
-      - name: Ejecutar pruebas unitarias e integración simulada
-        run: python -m pytest -q -m 'not deepchecks'
-      - name: Verificar presencia y SHA256 de los 3 snapshots MLflow
+      - name: Instalar dependencias fijadas
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip check
+      - name: Validar los SHA256 de los tres snapshots exportados
         run: python -m deployment.verify_snapshot
-      - name: Validar configuración Compose
+      - name: Ejecutar pruebas sin datasets masivos
+        run: python -m pytest tests/ -m 'not deepchecks' -q
+      - name: Escanear secretos en archivos versionados
+        run: python -m quality.secrets_scan
+      - name: Validar Docker Compose sin credenciales
         run: docker compose -f docker-compose.yml config --quiet
 
   imagen:
-    name: Construir imagen + smoke test real
+    name: Construir OCI y probar inferencias reales
     needs: pruebas
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Validar integridad del contexto del contenedor
+        run: |
+          test -s deployment/model_store/manifest.json
+          test -s deployment/model_store/p1/model.skops
+          test -s deployment/model_store/p2/model.skops
+          test -s deployment/model_store/p3/model.skops
+      - name: Construir imagen OCI
+        run: docker build --pull -f Containerfile -t mibici-ci:latest .
+      - name: Ejecutar smoke test P1 P2 P3
+        shell: bash
+        run: |
+          set -euo pipefail
+          CID=$(docker run --detach --env UVICORN_WORKERS=1 --publish 127.0.0.1:8000:8000 mibici-ci:latest)
+          trap 'docker logs "$CID" || true; docker rm -f "$CID" >/dev/null || true' EXIT
+          ok=0
+          for i in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:8000/health > /dev/null; then
+              ok=1
+              break
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' "$CID")" != true ]; then
+              echo 'ERROR: el contenedor termino durante el arranque' >&2
+              exit 1
+            fi
+            sleep 3
+          done
+          test "$ok" -eq 1 || { echo 'ERROR: no respondio /health' >&2; exit 1; }
+          python3 -m deployment.smoke_test --base-url http://127.0.0.1:8000
+
+  publicar:
+    name: Publicar imagen aprobada en GHCR (no despliegue)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [pruebas, imagen]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Comprobar snapshots antes de build
-        shell: bash
-        run: |
-          test -s deployment/model_store/manifest.json || { echo 'Faltan snapshots versionados'; exit 1; }
-          for p in p1 p2 p3; do
-            test -s "deployment/model_store/$p/MLmodel" || exit 1
-          done
-      - name: Configurar Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Construir imagen local para integración
-        uses: docker/build-push-action@v6
+      - uses: actions/checkout@v6
         with:
-          context: .
-          file: Containerfile
-          load: true
-          push: false
-          tags: mibici-equipo19-api:ci
-      - name: Iniciar API y verificar health y predicciones P1/P2/P3
+          persist-credentials: false
+      - name: Construir y publicar usando GITHUB_TOKEN
         shell: bash
-        run: |
-          docker run -d --name mibici-ci -p 127.0.0.1:8000:8000 mibici-equipo19-api:ci
-          for i in $(seq 1 90); do
-            if curl --fail --silent http://127.0.0.1:8000/health > /dev/null; then break; fi
-            sleep 2
-          done
-          python -m deployment.smoke_test --base-url http://127.0.0.1:8000
-      - name: Logs ante fallo
-        if: failure()
-        run: docker logs mibici-ci || true
-      - name: Finalizar contenedor
-        if: always()
-        run: docker rm -f mibici-ci || true
-      - name: Publicar imagen en GHCR solo al subir a main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          ACTOR: ${{ github.actor }}
-          SHA: ${{ github.sha }}
-        shell: bash
         run: |
-          IMAGE="ghcr.io/${REPO,,}/mibici-api"
-          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
-          docker tag mibici-equipo19-api:ci "$IMAGE:latest"
-          docker tag mibici-equipo19-api:ci "$IMAGE:${SHA}"
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:${SHA}"
+          set -euo pipefail
+          IMAGE=$(echo "ghcr.io/${GITHUB_REPOSITORY}/mibici-api" | tr '[:upper:]' '[:lower:]')
+          SHA_TAG="sha-${GITHUB_SHA:0:12}"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --pull -f Containerfile -t "${IMAGE}:${SHA_TAG}" -t "${IMAGE}:latest" .
+          docker push "${IMAGE}:${SHA_TAG}"
+          docker push "${IMAGE}:latest"
+          echo "Publicado: ${IMAGE}:${SHA_TAG}" >> "$GITHUB_STEP_SUMMARY"
+          echo 'La publicación de una imagen no constituye despliegue a producción.' >> "$GITHUB_STEP_SUMMARY"

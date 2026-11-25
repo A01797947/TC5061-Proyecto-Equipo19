@@ -1,0 +1,167 @@
+{
+  "proyecto": "TC5061-Proyecto-Equipo19",
+  "tipo": "auditoria_estatica_zip",
+  "nota": "Un check 'ok' de código no prueba funcionamiento real ni CI en verde.",
+  "conteo": {
+    "ok": 13,
+    "pendiente": 0,
+    "error": 0
+  },
+  "criterios": [
+    {
+      "criterio": "Estructura, feature engineering y MLflow Project",
+      "estado": "ok",
+      "detalle": "Componentes presentes",
+      "evidencia": ""
+    },
+    {
+      "criterio": "API, contenedor y Compose",
+      "estado": "ok",
+      "detalle": "Código de despliegue presente; la ejecución no está probada aquí",
+      "evidencia": ""
+    },
+    {
+      "criterio": "SHA256 snapshots MLflow P1/P2/P3",
+      "estado": "ok",
+      "detalle": "3 snapshots íntegros y versionados en el manifest",
+      "evidencia": "deployment/model_store/manifest.json"
+    },
+    {
+      "criterio": "Definiciones CI/CD y calidad",
+      "estado": "ok",
+      "detalle": "Workflows presentes; comprobar ejecución verde en GitHub Actions",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Pruebas sintéticas y seguridad",
+      "estado": "ok",
+      "detalle": "Código disponible; ejecutar PyTest/escaneos en el entorno previsto",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Model Registry (metadatos SQLite)",
+      "estado": "ok",
+      "detalle": "Alias champion presente en P1/P2/P3 en este SQLite; confirmar carga de artefactos en MLflow",
+      "evidencia": "mlflow.db"
+    },
+    {
+      "criterio": "Model Cards y gobernanza",
+      "estado": "ok",
+      "detalle": "Model Cards disponibles; requieren aprobación humana",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Implementación Evidently y A/B offline",
+      "estado": "ok",
+      "detalle": "Código presente, NO acredita reportes reales",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Evidencia real drift + A/B",
+      "estado": "ok",
+      "detalle": "Informes y métricas generados disponibles",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Locust y FinOps - implementación",
+      "estado": "ok",
+      "detalle": "Scripts presentes",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Locust y FinOps - evidencia medida",
+      "estado": "ok",
+      "detalle": "Informes disponibles; revisar origen de mediciones",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Datos históricos / reproducción punta a punta",
+      "estado": "ok",
+      "detalle": "33 archivo(s) parquet mensual(es) en ZIP; requiere restaurar datasets para reentrenar",
+      "evidencia": ""
+    },
+    {
+      "criterio": "Notebooks y evidencias visuales",
+      "estado": "ok",
+      "detalle": "2 notebook(s) incluidos",
+      "evidencia": ""
+    }
+  ],
+  "registry_sqlite": {
+    "fuente": "sqlite_local",
+    "modelos": {
+      "p1": {
+        "nombre": "mibici-equipo19-p1-demanda",
+        "versiones": [
+          {
+            "version": 1,
+            "run_id": "ba2b1e2923bf4565951150bb0fc5f107",
+            "estado": "FINISHED"
+          },
+          {
+            "version": 2,
+            "run_id": "93d508c48ae94c79af7bbc82e7e9c9c0",
+            "estado": "FINISHED"
+          }
+        ],
+        "aliases": {
+          "champion": 1,
+          "candidate_e8": 2
+        },
+        "linaje_champion": {
+          "question": "p1",
+          "source_run_id": "ba2b1e2923bf4565951150bb0fc5f107",
+          "source_experiment_id": "1",
+          "git_commit": "3cc78723b23b2cb3e030b5d45c23f3ed03b33395",
+          "data_version": "a8ebbf8d8375",
+          "equipo": "equipo19"
+        },
+        "champion_registrado": true
+      },
+      "p2": {
+        "nombre": "mibici-equipo19-p2-riesgo",
+        "versiones": [
+          {
+            "version": 1,
+            "run_id": "05afe261554d40e1a4ca960b341305cb",
+            "estado": "FINISHED"
+          }
+        ],
+        "aliases": {
+          "champion": 1
+        },
+        "linaje_champion": {
+          "question": "p2",
+          "source_run_id": "05afe261554d40e1a4ca960b341305cb",
+          "source_experiment_id": "1",
+          "git_commit": "3cc78723b23b2cb3e030b5d45c23f3ed03b33395",
+          "data_version": "a8ebbf8d8375",
+          "equipo": "equipo19"
+        },
+        "champion_registrado": true
+      },
+      "p3": {
+        "nombre": "mibici-equipo19-p3-grupos",
+        "versiones": [
+          {
+            "version": 1,
+            "run_id": "594403c4ced240a2863cde00cfcdd086",
+            "estado": "FINISHED"
+          }
+        ],
+        "aliases": {
+          "champion": 1
+        },
+        "linaje_champion": {
+          "question": "p3",
+          "source_run_id": "594403c4ced240a2863cde00cfcdd086",
+          "source_experiment_id": "1",
+          "git_commit": "3cc78723b23b2cb3e030b5d45c23f3ed03b33395",
+          "data_version": "a8ebbf8d8375",
+          "equipo": "equipo19"
+        },
+        "champion_registrado": true
+      }
+    }
+  }
+}
